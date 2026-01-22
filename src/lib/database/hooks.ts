@@ -128,7 +128,7 @@ export function useRxData<T = any>(
       return;
     }
 
-    const collection = db[collectionName];
+    const collection = db[collectionName] as RxCollection<any>;
     if (!collection) {
       setIsFetching(false);
       return;
@@ -145,7 +145,7 @@ export function useRxData<T = any>(
     });
 
     // Observa mudanças na coleção
-    const subscription = collection.$.subscribe(() => {
+    const subscription = (collection as any).$.subscribe(() => {
       const updatedQuery = queryFn(collection);
       updatedQuery.exec().then((docs: RxDocument<T>[]) => {
         const jsonDocs = docs.map(doc => doc.toJSON());

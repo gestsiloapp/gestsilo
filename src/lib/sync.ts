@@ -48,8 +48,10 @@ export const pushEventsToSupabase = async () => {
     await db.events.bulkUpsert(
         unsyncedEvents.map(doc => {
             const data = doc.toJSON();
-            data.sync_status = 'SYNCED'; 
-            return data;
+            return {
+                ...data,
+                sync_status: 'SYNCED' as const
+            };
         })
     );
 
