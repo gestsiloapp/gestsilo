@@ -1,0 +1,462 @@
+# 🚜 GestSilo - Contexto do Projeto e Status Atual
+
+**Última Atualização:** 20 de Janeiro de 2026  
+**Versão:** 3.0 (Autenticação Completa Implementada)
+
+---
+
+## 📋 **ORIENTAÇÕES INICIAIS - ANTES DE CONTEXTUALIZAR**
+
+### ⚠️ **IMPORTANTE: Leia Antes de Começar**
+
+Antes de contextualizar com o projeto GestSilo, é **ESSENCIAL** entender:
+
+1. **Configurações do Ambiente:**
+   - Variáveis de ambiente (`.env.local`) devem estar configuradas
+   - Supabase deve ter tabelas e policies RLS criadas
+   - Banco local (IndexedDB) pode precisar ser limpo após mudanças de schema
+
+2. **Regras de Desenvolvimento:**
+   - Sempre responder em **Português (pt-BR)**
+   - Preferir soluções simples e manuteníveis
+   - Evitar duplicação de código
+   - Arquivos não devem exceder 200-300 linhas (refatorar quando necessário)
+   - Nunca sobrescrever `.env.local` sem confirmação
+
+3. **Arquitetura do Projeto:**
+   - **Offline-First:** RxDB (local) + Supabase (backup)
+   - **Append-Only:** Estoque é soma de eventos, nunca editar saldos diretamente
+   - **Server Actions:** Autenticação usa Server Actions do Next.js 14
+   - **RLS:** Row-Level Security ativo no Supabase
+
+4. **Stack Tecnológica:**
+   - Next.js 14 (App Router)
+   - RxDB + Dexie (IndexedDB)
+   - Supabase (Auth + Postgres)
+   - Tailwind CSS + Lucide Icons
+
+5. **Convenções:**
+   - TypeScript strict mode
+   - Componentes em PascalCase
+   - Hooks em camelCase com prefixo `use`
+   - Commits seguem padrão: `feat:`, `fix:`, `refactor:`, `docs:`
+
+---
+
+## 🎯 **CONTEXTO DO PROJETO**
+
+### 1. Visão Geral
+
+Sistema de gestão de silagem **Offline-First** para tratadores de gado.
+
+- **Arquitetura:** Local-First (RxDB) com Sincronização em Background (Supabase)
+- **Regra de Ouro:** Append-Only (Estoque é soma de eventos, nunca editamos saldos diretamente)
+- **UX:** Alto Contraste (Uso sob sol forte)
+- **PWA Ready:** Manifesto configurado para instalação em dispositivos móveis
+- **Autenticação:** Sistema completo com login/cadastro unificado
+
+---
+
+## 2. Stack Tecnológica
+
+- **Frontend:** Next.js 14 (App Router)
+- **Estilo:** Tailwind CSS + Lucide Icons (Design System "Industrial Premium")
+- **Database Local:** RxDB (Community) com Storage Dexie (IndexedDB)
+- **Sync Strategy:** Manual "Outbox Pattern" via Status String ('PENDING' → 'SYNCED')
+- **Backend:** Supabase (Postgres + Auth) como backup/réplica passiva
+- **Autenticação:** Supabase Auth com Server Actions (SSR)
+
+---
+
+## 3. Estrutura de Dados
+
+### 3.1 Schema Local (RxDB)
+
+**Eventos (`events`):**
+- `client_event_id` (PK, UUID)
+- `silo_id` (FK, UUID)
+- `user_id` (String, padrão: 'user_local')
+- `event_type` ('LOADING' | 'USAGE' | 'COMPENSATION')
+- `amount_kg` (Number, pode ser negativo para saídas)
+- `input_method` ('MANUAL_KG' | 'BUCKET_COUNT' | 'WAGON_COUNT')
+- `created_at` (ISO String)
+- `updated_at` (ISO String)
+- **`sync_status`** ('PENDING' | 'SYNCED') ⚠️ **Campo Crítico**
+
+**Silos (`silos`):**
+- `id` (PK, UUID)
+- `name` (String)
+- `type` (String, ex: 'Trincheira', 'Superfície')
+- `content_type` (String, ex: 'Milho (Safra 2024)', 'Sorgo')
+- `capacity_kg` (Number)
+- `location` (String)
+- `created_at` (ISO String)
+
+**Índices:**
+- `events`: `['sync_status', 'silo_id']` (otimizado para queries de sincronização)
+- `silos`: Nenhum índice adicional (queries simples)
+
+### 3.2 Schema Remoto (Supabase)
+
+**Tabela `events`:**
+```sql
+CREATE TABLE events (
+    client_event_id UUID PRIMARY KEY,
+    silo_id TEXT NOT NULL,
+    user_id TEXT,
+    event_type TEXT NOT NULL CHECK (event_type IN ('LOADING', 'USAGE', 'COMPENSATION')),
+    amount_kg NUMERIC NOT NULL,
+    input_method TEXT,
+    created_at TIMESTAMPTZ NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL
+);
+-- Nota: sync_status é controle LOCAL apenas, não vai para Supabase
+```
+
+**Tabela `profiles` (Autenticação):**
+```sql
+CREATE TABLE profiles (
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    email TEXT NOT NULL UNIQUE,
+    full_name TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'MANAGER' CHECK (role IN ('MANAGER', 'OPERATOR', 'ADMIN')),
+    created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+-- RLS Policies (CRÍTICO!)
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "profiles_insert_policy"
+  ON profiles FOR INSERT TO authenticated
+  WITH CHECK (auth.uid() = id);
+
+CREATE POLICY "profiles_select_policy"
+  ON profiles FOR SELECT TO authenticated
+  USING (auth.uid() = id);
+
+CREATE POLICY "profiles_update_policy"
+  ON profiles FOR UPDATE TO authenticated
+  USING (auth.uid() = id)
+  WITH CHECK (auth.uid() = id);
+```
+
+---
+
+## 4. Funcionalidades Implementadas
+
+### ✅ Core Features
+- [x] **Setup RxDB:** Inicialização segura no browser com `DatabaseProvider`
+- [x] **Sync Engine:** Função `pushEventsToSupabase` (busca por `sync_status: 'PENDING'`)
+- [x] **Seed de Dados:** Criação automática de 2 silos de teste se banco vazio
+- [x] **Dashboard (Home):** Lista de Silos com componente `SiloCard`
+- [x] **Cálculo de Saldo:** Hook `useSiloBalance` soma eventos em tempo real
+- [x] **Lançamento:** Formulário em `/silos/[id]/new` salvando no RxDB
+- [x] **Extrato:** Histórico de eventos em `/silos/[id]` com `EventHistory`
+- [x] **UI:** Componentes Button, Card, Header padronizados
+
+### ✅ Autenticação Completa (v3.0)
+- [x] **Cliente Supabase SSR:** Configuração para Server-Side Rendering
+  - `src/lib/supabase/client.ts` (Browser)
+  - `src/lib/supabase/server.ts` (Server)
+  - `src/lib/supabase/middleware.ts` (Session Manager)
+- [x] **Server Actions:** Login, Signup e Logout
+- [x] **Página Unificada:** Login e Cadastro na mesma tela (`/login`)
+- [x] **Middleware de Proteção:** Rotas privadas protegidas automaticamente
+- [x] **Sistema de Perfis:** Criação automática de perfil ao cadastrar
+- [x] **Header com Logout:** Botão funcional no header do app
+
+### ✅ Refatorações de Segurança (v2.1)
+- [x] **Schema Migration:** `synced_at` → `sync_status` (elimina erro IndexedDB com null)
+- [x] **Sync Engine Atualizado:** Query segura com índice otimizado
+- [x] **UI de Status:** Feedback visual (✅ Sincronizado / ⏳ Pendente)
+- [x] **PWA Manifest:** Configuração para instalação mobile
+- [x] **Type Safety:** Enums fortes substituindo campos nullable
+
+---
+
+## 5. Estrutura de Pastas
+
+```text
+gestsilo/
+├── public/
+│   └── manifest.json              # PWA config
+├── src/
+│   ├── middleware.ts              # Guardião de rotas (NEW)
+│   ├── app/
+│   │   ├── page.tsx               # Dashboard (Lista de Silos)
+│   │   ├── layout.tsx             # Root Layout
+│   │   ├── globals.css            # Estilos globais
+│   │   ├── login/
+│   │   │   ├── actions.ts         # Server Actions (login, signup, logout)
+│   │   │   └── page.tsx            # Página unificada Login/Signup (UPDATED)
+│   │   └── silos/
+│   │       └── [id]/
+│   │           ├── page.tsx        # Extrato do Silo
+│   │           └── new/
+│   │               └── page.tsx    # Formulário de Operação
+│   ├── components/
+│   │   ├── domain/
+│   │   │   ├── SiloCard.tsx       # Card visual do silo
+│   │   │   └── EventHistory.tsx   # Lista de eventos
+│   │   ├── ui/
+│   │   │   ├── Button.tsx
+│   │   │   └── Card.tsx
+│   │   ├── layout/
+│   │   │   └── Header.tsx         # Header com logout (UPDATED)
+│   │   └── providers/
+│   │       └── DatabaseProvider.tsx
+│   ├── lib/
+│   │   ├── database/
+│   │   │   ├── db.ts              # Inicialização RxDB + Seed
+│   │   │   ├── schema.ts          # Schemas typed
+│   │   │   ├── hooks.ts           # useRxData hook
+│   │   │   └── RxDBHooksProvider.tsx
+│   │   ├── supabase/
+│   │   │   ├── client.ts          # Browser Client (NEW)
+│   │   │   ├── server.ts          # Server Client (NEW)
+│   │   │   └── middleware.ts      # Session Manager (NEW)
+│   │   ├── sync.ts                # Motor de sincronização
+│   │   └── utils.ts                # Helpers
+│   └── hooks/
+│       └── useSiloBalance.ts      # Agregação de saldo
+├── package.json
+├── tsconfig.json
+├── tailwind.config.js
+└── PROJECT_STATUS.md              # Este arquivo
+```
+
+---
+
+## 6. Fluxo de Dados Crítico
+
+### 6.1 Autenticação
+```typescript
+// Login: /login → Server Action → Supabase Auth → Cookie → Redirect /
+// Signup: /login → Server Action → Auth + Profile → Cookie → Redirect /
+// Logout: Header → Server Action → SignOut → Redirect /login
+```
+
+### 6.2 Criação de Evento
+```typescript
+// 1. Usuário preenche formulário (silos/[id]/new)
+await db.events.insert({
+  client_event_id: uuidv4(),
+  silo_id: siloId,
+  event_type: 'LOADING',
+  amount_kg: 1000,
+  sync_status: 'PENDING'  // ⚠️ SEMPRE PENDING ao criar
+  // ...outros campos
+});
+
+// 2. Evento é salvo localmente (IndexedDB)
+// 3. UI atualiza instantaneamente (reatividade RxDB)
+```
+
+### 6.3 Sincronização
+```typescript
+// Motor busca eventos pendentes
+const pending = await db.events.find({
+  selector: { sync_status: { $eq: 'PENDING' } }
+});
+
+// Envia para Supabase
+await supabase.from('events').upsert(payload);
+
+// Marca como sincronizado
+await db.events.bulkUpsert(
+  pending.map(e => ({ ...e, sync_status: 'SYNCED' }))
+);
+```
+
+---
+
+## 7. Problemas Resolvidos (Changelog)
+
+### v3.0 - Autenticação Completa (20/01/2026) 🎉
+**Conquistas:**
+1. ✅ **Sistema de Autenticação:** Login, Signup e Logout funcionais
+2. ✅ **Página Unificada:** Login e Cadastro na mesma tela com toggle
+3. ✅ **Middleware de Proteção:** Rotas privadas protegidas automaticamente
+4. ✅ **Sistema de Perfis:** Criação automática ao cadastrar
+5. ✅ **RLS Policies:** Configuração correta no Supabase
+6. ✅ **Provedor de Email:** Configurado e funcionando
+
+**Arquivos Criados/Modificados:**
+- `src/lib/supabase/client.ts` (novo)
+- `src/lib/supabase/server.ts` (novo)
+- `src/lib/supabase/middleware.ts` (novo)
+- `src/middleware.ts` (novo)
+- `src/app/login/actions.ts` (novo - Server Actions)
+- `src/app/login/page.tsx` (atualizado - unificado)
+- `src/components/layout/Header.tsx` (atualizado - logout)
+- `src/app/signup/page.tsx` (removido - não mais necessário)
+
+**Configurações Supabase:**
+- Tabela `profiles` criada com RLS
+- Policies de INSERT, SELECT e UPDATE configuradas
+- Provedor de email ativado
+- Email confirmations configurado conforme necessidade
+
+### v2.1 - Refatoração de Segurança (19/01/2026)
+**Problema:** IndexedDB não aceita índices em campos nullable (`synced_at: null`).
+
+**Solução Implementada:**
+1. ✅ Migrado campo `synced_at` (Date | null) → `sync_status` (enum string)
+2. ✅ Índice seguro criado: `['sync_status', 'silo_id']`
+3. ✅ Query de sync otimizada com `$eq: 'PENDING'`
+4. ✅ UI atualizada com feedback visual de status
+5. ✅ Manifesto PWA criado (`public/manifest.json`)
+
+**Breaking Change:** ⚠️ Banco local precisa ser limpo (schema incompatível com versão anterior).
+
+---
+
+## 8. Configuração do Ambiente
+
+### 8.1 Variáveis de Ambiente (.env.local)
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJxxx...
+```
+
+**⚠️ IMPORTANTE:** Nunca commitar este arquivo no git!
+
+### 8.2 Configurações Supabase Necessárias
+
+**1. Tabela `profiles` com RLS:**
+```sql
+-- Execute o SQL da seção 3.2 para criar tabela e policies
+```
+
+**2. Authentication Settings:**
+- Provedor de email configurado
+- Email confirmations configurado conforme necessidade (desenvolvimento/produção)
+
+**3. URL Configuration:**
+```
+Site URL: http://localhost:3000
+Redirect URLs: 
+  - http://localhost:3000
+  - http://localhost:3000/**
+```
+
+### 8.3 Comandos
+```bash
+npm install          # Instalar dependências
+npm run dev          # Servidor de desenvolvimento (porta 3000-3002)
+npm run build        # Build de produção
+npm run start        # Servidor de produção
+```
+
+---
+
+## 9. Tarefas Futuras (Backlog)
+
+### 🔜 Prioridade Alta
+- [ ] Sincronização automática em background (intervalo configurável)
+- [ ] Indicador visual de conexão/offline
+- [ ] Retry logic para falhas de sincronização
+- [ ] Logs de erro persistentes
+- [ ] Exibir informações do usuário logado no Header
+
+### 🔮 Melhorias Futuras
+- [ ] Multi-usuário com permissões (admin/tratador)
+- [ ] Relatórios e gráficos de consumo
+- [ ] Exportação de dados (CSV/PDF)
+- [ ] Notificações push (alertas de estoque baixo)
+- [ ] Sincronização bidirecional (Pull + Push)
+- [ ] Modo câmera para fotos dos silos
+- [ ] Geolocalização dos silos
+
+### 🎨 UX/UI
+- [ ] Ícone do app (`public/icon.png` 512x512)
+- [ ] Splash screen
+- [ ] Animações de transição mais elaboradas
+- [ ] Modo escuro (opcional)
+- [ ] Tutorial de primeiro uso
+
+---
+
+## 10. Notas Técnicas Importantes
+
+### ⚠️ Limpeza de Banco Necessária
+Após atualizar o schema, limpe o IndexedDB:
+```
+F12 → Application → Storage → Clear site data
+OU
+Abrir em aba anônima
+```
+
+### 🔒 Segurança
+- Cliente Supabase usa chave ANON (segura para client-side)
+- RLS (Row Level Security) configurado e ativo no Supabase
+- Nunca commitar `.env.local` no git
+- Server Actions executam no servidor (seguro)
+- Cookies HTTP-only para sessões
+
+### 🚀 Performance
+- Índices otimizados para queries frequentes
+- Saldo calculado em tempo real (sem cache - futura otimização)
+- Ordenação no RxDB (não em JavaScript)
+- Middleware executa no Edge (rápido)
+
+### 📱 PWA
+- Manifesto configurado para instalação
+- Service Worker ainda não implementado (offline-first já funciona via IndexedDB)
+- Ícone pendente (`public/icon.png`)
+
+### 🔐 Autenticação
+- Sistema completo com login/cadastro unificado
+- Middleware protege todas as rotas privadas
+- Perfis criados automaticamente ao cadastrar
+- Logout funcional no header
+
+---
+
+## 11. Convenções do Projeto
+
+### Commits
+- `feat:` nova funcionalidade
+- `fix:` correção de bug
+- `refactor:` refatoração sem mudança funcional
+- `docs:` documentação
+- `style:` formatação
+
+### Código
+- TypeScript strict mode
+- ESLint + Prettier
+- Componentes em PascalCase
+- Hooks em camelCase com prefixo `use`
+- Tipos exportados de `schema.ts`
+- Server Actions marcadas com `'use server'`
+
+### Arquitetura
+- Offline-First: RxDB local + Supabase backup
+- Append-Only: Nunca editar saldos diretamente
+- Server Actions para autenticação
+- Middleware para proteção de rotas
+
+---
+
+## 12. Troubleshooting
+
+### Problema: "new row violates row-level security policy"
+**Solução:** Verificar se as 3 policies RLS estão criadas na tabela `profiles`:
+```sql
+SELECT policyname, cmd FROM pg_policies WHERE tablename = 'profiles';
+-- Deve retornar: INSERT, SELECT, UPDATE
+```
+
+### Problema: "Database error saving new user"
+**Solução:** Verificar configurações de Authentication no Supabase:
+- Provedor de email configurado
+- Email confirmations configurado corretamente
+
+### Problema: Middleware redirecionando incorretamente
+**Solução:** Verificar rotas públicas em `src/lib/supabase/middleware.ts`
+
+---
+
+**Status Geral:** ✅ **Produção-Ready** (com autenticação completa)  
+**Próximo Marco:** Sincronização Automática v3.1
