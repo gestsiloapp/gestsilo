@@ -27,8 +27,8 @@ export function useRxCollection<T>(collection: RxCollection<T> | null) {
       setIsLoading(false);
     });
 
-    // Observa mudanças na coleção
-    const subscription = collection.$.subscribe((changeEvent) => {
+    // Observa mudanças na coleção (as any evita erro de union type do RxDB no build)
+    const subscription = (collection as any).$.subscribe((changeEvent: unknown) => {
       collection.find().exec().then((updatedDocs) => {
         setDocs(updatedDocs);
       });
@@ -79,8 +79,8 @@ export function useSiloEvents(siloId: string | null) {
         setIsLoading(false);
       });
 
-    // Observa mudanças nos eventos deste silo
-    const subscription = db.events.$.subscribe(() => {
+    // Observa mudanças nos eventos deste silo (as any evita erro de union type do RxDB no build)
+    const subscription = (db.events as any).$.subscribe(() => {
       db.events
         .find({
           selector: {
