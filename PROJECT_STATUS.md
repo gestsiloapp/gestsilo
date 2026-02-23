@@ -1,7 +1,7 @@
 # 🚜 GestSilo - Contexto do Projeto e Status Atual
 
-**Última Atualização:** 20 de Janeiro de 2026  
-**Versão:** 3.0 (Autenticação Completa Implementada)
+**Última Atualização:** 25 de Janeiro de 2026  
+**Versão:** 4.0 (Rotas por Perfil – Manager / Operator)
 
 ---
 
@@ -54,6 +54,7 @@ Sistema de gestão de silagem **Offline-First** para tratadores de gado.
 - **UX:** Alto Contraste (Uso sob sol forte)
 - **PWA Ready:** Manifesto configurado para instalação em dispositivos móveis
 - **Autenticação:** Sistema completo com login/cadastro unificado
+- **Rotas por perfil:** Raiz (`/`) redireciona MANAGER → `/manager`, OPERATOR/ADMIN → `/operator`
 
 ---
 
@@ -148,23 +149,32 @@ CREATE POLICY "profiles_update_policy"
 ### ✅ Core Features
 - [x] **Setup RxDB:** Inicialização segura no browser com `DatabaseProvider`
 - [x] **Sync Engine:** Função `pushEventsToSupabase` (busca por `sync_status: 'PENDING'`)
-- [x] **Seed de Dados:** Criação automática de 2 silos de teste se banco vazio
-- [x] **Dashboard (Home):** Lista de Silos com componente `SiloCard`
+- [x] **Seed de Dados:** Criação automática de 2 silos de teste em `db.ts` se banco vazio
+- [x] **Dashboard (Manager):** Lista de Silos com `SiloCard` em `/manager`
 - [x] **Cálculo de Saldo:** Hook `useSiloBalance` soma eventos em tempo real
 - [x] **Lançamento:** Formulário em `/silos/[id]/new` salvando no RxDB
 - [x] **Extrato:** Histórico de eventos em `/silos/[id]` com `EventHistory`
 - [x] **UI:** Componentes Button, Card, Header padronizados
 
-### ✅ Autenticação Completa (v3.0)
-- [x] **Cliente Supabase SSR:** Configuração para Server-Side Rendering
-  - `src/lib/supabase/client.ts` (Browser)
-  - `src/lib/supabase/server.ts` (Server)
-  - `src/lib/supabase/middleware.ts` (Session Manager)
+### ✅ Rotas por Perfil (v4.0)
+- [x] **Bifurcação na raiz (`/`):** `getUserProfile()` no servidor → redireciona por `role`:
+  - `MANAGER` → `/manager`
+  - `OPERATOR` ou `ADMIN` → `/operator`
+- [x] **`get-user-profile.ts`:** Busca perfil na tabela `profiles` (role, full_name, email); fallback `OPERATOR` se perfil inexistente; redirect para `/login` se não autenticado
+- [x] **Manager Dashboard (`/manager`):** Lista de silos (SiloCard), links para Extrato e Operação (`/silos/[id]`, `/silos/[id]/new`)
+- [x] **Operator Dashboard (`/operator`):** UI de Operação Diária: modo IDLE → escolha Entrada (LOADING) ou Saída (USAGE); formulário simplificado (kg). *Ainda mock: não persiste no RxDB*
+
+### 🟡 Em Desenvolvimento (não integrado)
+- [ ] **MainLayout:** Sidebar desktop, barra inferior mobile, indicador de sync, logout. Referencia rotas `/dashboards`, `/history`, `/settings`, `/team` e tokens Tailwind (`brand-*`, `earth-*`, `concrete-*`, `ui-*`, `status-*`) que não existem no `tailwind.config.js` – **não está em uso**; manager/operator usam `Header`
+- [ ] **seed.ts:** Módulo `seedSilos()` extraído; `db.ts` mantém seed inline – **não usado**
+
+### ✅ Autenticação (v3.0)
+- [x] **Cliente Supabase SSR:** `client.ts`, `server.ts`, `middleware.ts`
 - [x] **Server Actions:** Login, Signup e Logout
-- [x] **Página Unificada:** Login e Cadastro na mesma tela (`/login`)
-- [x] **Middleware de Proteção:** Rotas privadas protegidas automaticamente
-- [x] **Sistema de Perfis:** Criação automática de perfil ao cadastrar
-- [x] **Header com Logout:** Botão funcional no header do app
+- [x] **Página Unificada:** Login e Cadastro em `/login`
+- [x] **Middleware de Proteção:** Rotas privadas; `/login` é pública
+- [x] **Sistema de Perfis:** Criação automática ao cadastrar
+- [x] **Header com Logout:** Botão funcional no header
 
 ### ✅ Refatorações de Segurança (v2.1)
 - [x] **Schema Migration:** `synced_at` → `sync_status` (elimina erro IndexedDB com null)
@@ -182,44 +192,53 @@ gestsilo/
 ├── public/
 │   └── manifest.json              # PWA config
 ├── src/
-│   ├── middleware.ts              # Guardião de rotas (NEW)
+│   ├── middleware.ts              # Guardião de rotas (proteção + sessão Supabase)
 │   ├── app/
-│   │   ├── page.tsx               # Dashboard (Lista de Silos)
-│   │   ├── layout.tsx             # Root Layout
+│   │   ├── page.tsx               # Bifurcação: getUserProfile → /manager ou /operator
+│   │   ├── layout.tsx             # Root Layout (DatabaseProvider)
 │   │   ├── globals.css            # Estilos globais
 │   │   ├── login/
 │   │   │   ├── actions.ts         # Server Actions (login, signup, logout)
-│   │   │   └── page.tsx            # Página unificada Login/Signup (UPDATED)
+│   │   │   └── page.tsx           # Página unificada Login/Signup
+│   │   ├── (app)/                 # Route group (não altera URL)
+│   │   │   ├── manager/
+│   │   │   │   └── page.tsx       # Dashboard Gerente: lista de Silos (SiloCard)
+│   │   │   └── operator/
+│   │   │       └── page.tsx       # Dashboard Operador: Operação Diária (Entrada/Saída)
 │   │   └── silos/
 │   │       └── [id]/
-│   │           ├── page.tsx        # Extrato do Silo
+│   │           ├── page.tsx       # Extrato do Silo (EventHistory)
 │   │           └── new/
-│   │               └── page.tsx    # Formulário de Operação
+│   │               └── page.tsx   # Formulário de Operação (LOADING/USAGE/COMPENSATION)
 │   ├── components/
 │   │   ├── domain/
-│   │   │   ├── SiloCard.tsx       # Card visual do silo
+│   │   │   ├── SiloCard.tsx       # Card visual do silo + saldo
 │   │   │   └── EventHistory.tsx   # Lista de eventos
 │   │   ├── ui/
 │   │   │   ├── Button.tsx
 │   │   │   └── Card.tsx
 │   │   ├── layout/
-│   │   │   └── Header.tsx         # Header com logout (UPDATED)
+│   │   │   ├── Header.tsx         # Header com logout (usado em manager, operator, silos)
+│   │   │   └── MainLayout.tsx     # Sidebar + nav mobile (em desenvolvimento, não integrado)
 │   │   └── providers/
 │   │       └── DatabaseProvider.tsx
 │   ├── lib/
+│   │   ├── auth/
+│   │   │   └── get-user-profile.ts # Perfil + role no servidor (redirect se não autenticado)
 │   │   ├── database/
-│   │   │   ├── db.ts              # Inicialização RxDB + Seed
-│   │   │   ├── schema.ts          # Schemas typed
+│   │   │   ├── db.ts              # Inicialização RxDB + seed inline
+│   │   │   ├── schema.ts          # Schemas typed (events, silos)
+│   │   │   ├── seed.ts            # seedSilos() – módulo extraído (não usado; db.ts tem seed inline)
 │   │   │   ├── hooks.ts           # useRxData hook
 │   │   │   └── RxDBHooksProvider.tsx
 │   │   ├── supabase/
-│   │   │   ├── client.ts          # Browser Client (NEW)
-│   │   │   ├── server.ts          # Server Client (NEW)
-│   │   │   └── middleware.ts      # Session Manager (NEW)
-│   │   ├── sync.ts                # Motor de sincronização
-│   │   └── utils.ts                # Helpers
+│   │   │   ├── client.ts          # Browser Client
+│   │   │   ├── server.ts          # Server Client
+│   │   │   └── middleware.ts      # Session Manager + rotas públicas
+│   │   ├── sync.ts                # Motor de sincronização (push PENDING → Supabase)
+│   │   └── utils.ts               # Helpers
 │   └── hooks/
-│       └── useSiloBalance.ts      # Agregação de saldo
+│       └── useSiloBalance.ts      # Agregação de saldo (soma de eventos)
 ├── package.json
 ├── tsconfig.json
 ├── tailwind.config.js
@@ -230,11 +249,17 @@ gestsilo/
 
 ## 6. Fluxo de Dados Crítico
 
-### 6.1 Autenticação
+### 6.1 Autenticação e Bifurcação por Perfil
 ```typescript
 // Login: /login → Server Action → Supabase Auth → Cookie → Redirect /
 // Signup: /login → Server Action → Auth + Profile → Cookie → Redirect /
-// Logout: Header → Server Action → SignOut → Redirect /login
+// Logout: Header → Server Action (ou supabase.auth.signOut no MainLayout) → Redirect /login
+
+// Raiz (/): page.tsx (Server Component)
+//   1. getUserProfile() → supabase.auth.getUser() + profiles
+//   2. Se !user → redirect('/login')
+//   3. Se profile.role === 'MANAGER' → redirect('/manager')
+//   4. Caso contrário (OPERATOR, ADMIN) → redirect('/operator')
 ```
 
 ### 6.2 Criação de Evento
@@ -273,7 +298,27 @@ await db.events.bulkUpsert(
 
 ## 7. Problemas Resolvidos (Changelog)
 
-### v3.0 - Autenticação Completa (20/01/2026) 🎉
+### v4.0 - Rotas por Perfil – Manager / Operator (25/01/2026) 🎉
+**Conquistas:**
+1. ✅ **Bifurcação na raiz:** `/` usa `getUserProfile()` e redireciona MANAGER → `/manager`, outros → `/operator`
+2. ✅ **Manager Dashboard:** Lista de silos (SiloCard) em `/manager`; links para Extrato e Operação
+3. ✅ **Operator Dashboard:** UI de Operação Diária (Entrada/Saída) em `/operator`; *persistência no RxDB pendente*
+4. ✅ **get-user-profile.ts:** Busca perfil + role no servidor; fallback OPERATOR; redirect se não autenticado
+5. ✅ **Route group `(app)`:** `manager` e `operator` organizados sem alterar a URL
+
+**Arquivos Criados/Modificados:**
+- `src/app/page.tsx` (reescrito: server-side, getUserProfile, redirect por role)
+- `src/app/(app)/manager/page.tsx` (novo)
+- `src/app/(app)/operator/page.tsx` (novo)
+- `src/lib/auth/get-user-profile.ts` (novo)
+- `src/components/layout/MainLayout.tsx` (novo – em desenvolvimento, não integrado)
+- `src/lib/database/seed.ts` (novo – não usado; db.ts mantém seed inline)
+
+**Observações:**
+- Manager e Operator usam `Header`; `MainLayout` (sidebar/nav) ainda não envolve as rotas
+- `MainLayout` referencia tokens Tailwind e rotas (`/dashboards`, `/history`, etc.) ainda inexistentes
+
+### v3.0 - Autenticação Completa (20/01/2026)
 **Conquistas:**
 1. ✅ **Sistema de Autenticação:** Login, Signup e Logout funcionais
 2. ✅ **Página Unificada:** Login e Cadastro na mesma tela com toggle
@@ -283,20 +328,10 @@ await db.events.bulkUpsert(
 6. ✅ **Provedor de Email:** Configurado e funcionando
 
 **Arquivos Criados/Modificados:**
-- `src/lib/supabase/client.ts` (novo)
-- `src/lib/supabase/server.ts` (novo)
-- `src/lib/supabase/middleware.ts` (novo)
-- `src/middleware.ts` (novo)
-- `src/app/login/actions.ts` (novo - Server Actions)
-- `src/app/login/page.tsx` (atualizado - unificado)
-- `src/components/layout/Header.tsx` (atualizado - logout)
-- `src/app/signup/page.tsx` (removido - não mais necessário)
-
-**Configurações Supabase:**
-- Tabela `profiles` criada com RLS
-- Policies de INSERT, SELECT e UPDATE configuradas
-- Provedor de email ativado
-- Email confirmations configurado conforme necessidade
+- `src/lib/supabase/client.ts`, `server.ts`, `middleware.ts`
+- `src/middleware.ts`, `src/app/login/actions.ts`, `src/app/login/page.tsx`
+- `src/components/layout/Header.tsx` (logout)
+- `src/app/signup/page.tsx` (removido)
 
 ### v2.1 - Refatoração de Segurança (19/01/2026)
 **Problema:** IndexedDB não aceita índices em campos nullable (`synced_at: null`).
@@ -354,14 +389,19 @@ npm run start        # Servidor de produção
 ## 9. Tarefas Futuras (Backlog)
 
 ### 🔜 Prioridade Alta
+- [ ] **Conectar Operator ao RxDB:** Formulário de Entrada/Saída em `/operator` persistir eventos (seleção de silo, amount_kg, event_type)
+- [ ] **Integrar MainLayout:** Layout `(app)` com `MainLayout` (sidebar + nav mobile), ou migrar tokens (brand, earth, concrete, ui-*, status-*) para `tailwind.config.js` e ativar
 - [ ] Sincronização automática em background (intervalo configurável)
-- [ ] Indicador visual de conexão/offline
+- [ ] Indicador visual de conexão/offline (MainLayout já tem esboço; conectar ao RxDB/sync)
 - [ ] Retry logic para falhas de sincronização
-- [ ] Logs de erro persistentes
-- [ ] Exibir informações do usuário logado no Header
+- [ ] Exibir informações do usuário logado no Header (usar `getUserProfile` ou dados da sessão)
+
+### 🔜 Rotas e Módulos Pendentes
+- [ ] Rotas referenciadas no MainLayout: `/dashboards`, `/history`, `/settings`, `/team`
+- [ ] Unificar seed: usar `seed.ts` em `db.ts` ou remover `seed.ts` e manter só inline
 
 ### 🔮 Melhorias Futuras
-- [ ] Multi-usuário com permissões (admin/tratador)
+- [ ] Multi-usuário com permissões (admin/tratador) – base em `profiles.role` já existe
 - [ ] Relatórios e gráficos de consumo
 - [ ] Exportação de dados (CSV/PDF)
 - [ ] Notificações push (alertas de estoque baixo)
@@ -408,9 +448,14 @@ Abrir em aba anônima
 
 ### 🔐 Autenticação
 - Sistema completo com login/cadastro unificado
-- Middleware protege todas as rotas privadas
+- Middleware protege todas as rotas privadas (exceto `/login`)
 - Perfis criados automaticamente ao cadastrar
-- Logout funcional no header
+- Logout funcional no header (e no MainLayout quando integrado)
+- Bifurcação por `profiles.role` em `/` → `/manager` ou `/operator`
+
+### 📁 Componentes e Módulos em Transição
+- **MainLayout:** Componente com sidebar/nav; não está em uso. Depende de tokens Tailwind (`brand-*`, `earth-*`, `concrete-*`, `ui-*`, `status-*`) e das rotas `/dashboards`, `/history`, `/settings`, `/team`. Integração futura via `layout.tsx` do route group `(app)`.
+- **seed.ts:** `seedSilos()` extraído; `db.ts` ainda faz seed inline. Decidir: passar a usar `seed.ts` em `db.ts` ou remover `seed.ts`.
 
 ---
 
@@ -458,5 +503,5 @@ SELECT policyname, cmd FROM pg_policies WHERE tablename = 'profiles';
 
 ---
 
-**Status Geral:** ✅ **Produção-Ready** (com autenticação completa)  
-**Próximo Marco:** Sincronização Automática v3.1
+**Status Geral:** ✅ **Produção-Ready** (autenticação + rotas por perfil)  
+**Próximo Marco:** Conectar Operator ao RxDB e integrar MainLayout (v4.1)

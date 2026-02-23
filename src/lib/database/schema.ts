@@ -64,3 +64,27 @@ export const siloSchemaLiteral = {
 const siloSchemaTyped = toTypedRxJsonSchema(siloSchemaLiteral);
 export type SiloDocType = ExtractDocumentTypeFromTypedRxJsonSchema<typeof siloSchemaTyped>;
 export const siloSchema: RxJsonSchema<SiloDocType> = siloSchemaLiteral;
+
+// --- SCHEMA DE TALHÕES (FIELDS) ---
+export const fieldSchemaLiteral = {
+  version: 0,
+  primaryKey: 'id',
+  type: 'object',
+  properties: {
+    id: { type: 'string', maxLength: 36 },
+    farm_id: { type: 'string', maxLength: 36 },
+    name: { type: 'string' },
+    area_ha: { type: 'number' },
+    culture: { type: 'string' },
+    status: { type: 'string', enum: ['active', 'harvest', 'pousio'] }, // Exemplo de status
+    metadata: { type: 'object' }, // Para dados flexíveis como tipo de solo, histórico, etc.
+    created_at: { type: 'string', format: 'date-time' },
+    updated_at: { type: 'string', format: 'date-time' },
+  },
+  required: ['id', 'farm_id', 'name', 'area_ha', 'culture', 'status', 'created_at', 'updated_at'],
+  indexes: ['farm_id', 'status']
+} as const;
+
+const fieldSchemaTyped = toTypedRxJsonSchema(fieldSchemaLiteral);
+export type FieldDocType = ExtractDocumentTypeFromTypedRxJsonSchema<typeof fieldSchemaTyped>;
+export const fieldSchema: RxJsonSchema<FieldDocType> = fieldSchemaLiteral;
