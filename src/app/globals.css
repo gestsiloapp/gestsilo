@@ -2,4 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Estilos globais para o GestSilo */
+@layer utilities {
+  /* Utility for hiding scrollbar but keeping functionality */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  /* Safe area for mobile bottom nav */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+body {
+  background-color: theme('colors.ui.bg');
+  color: theme('colors.ui.text');
+}

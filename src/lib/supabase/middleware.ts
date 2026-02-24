@@ -38,14 +38,13 @@ export async function updateSession(request: NextRequest) {
 
   // Define rotas públicas (acessíveis sem login)
   const publicRoutes = ['/login'];
-  const isPublicRoute = publicRoutes.some(route => 
+  const isPublicRoute = publicRoutes.some(route =>
     request.nextUrl.pathname.startsWith(route)
   );
 
   // Regra de Ouro da Proteção:
   // 1. Se NÃO estiver logado e tentar acessar rota privada...
   if (!user && !isPublicRoute) {
-    // ...Redireciona para o Login
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);
@@ -53,9 +52,29 @@ export async function updateSession(request: NextRequest) {
 
   // 2. Se ESTIVER logado e tentar acessar rotas públicas (login/signup)...
   if (user && isPublicRoute) {
-    // ...Joga direto para o Dashboard (Home)
+    // Busca role e redireciona direto para /manager ou /operator (evita carregar /)
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+    const role = (profile as { role?: string } | null)?.role ?? 'OPERATOR';
     const url = request.nextUrl.clone();
-    url.pathname = '/';
+    url.pathname = role === 'MANAGER' ? '/manager' : '/operator';
+    return NextResponse.redirect(url);
+  }
+
+  // 3. Otimização: raiz (/) — redirect por role no middleware evita carregar a página
+  if (user && (request.nextUrl.pathname === '/' || request.nextUrl.pathname === '')) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    const role = (profile as { role?: string } | null)?.role ?? 'OPERATOR';
+    const url = request.nextUrl.clone();
+    url.pathname = role === 'MANAGER' ? '/manager' : '/operator';
     return NextResponse.redirect(url);
   }
 

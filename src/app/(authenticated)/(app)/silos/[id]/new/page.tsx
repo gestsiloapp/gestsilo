@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useDatabase } from '@/components/providers/DatabaseProvider';
-import { Header } from '@/components/layout/Header';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { ArrowLeft, Save, Truck, PackageMinus } from 'lucide-react';
@@ -71,22 +70,16 @@ export default function NewOperationPage({ params }: PageProps) {
   // Loading state enquanto o RxDB busca o silo
   if (!silo) {
     return (
-        <div className="min-h-screen bg-gray-50">
-            <Header />
-            <div className="p-8 text-center text-gray-500">Carregando dados do Silo...</div>
-        </div>
+      <div className="p-8 text-center text-gray-500">Carregando dados do Silo...</div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
-      
-      <main className="container mx-auto px-4 py-8 max-w-lg">
+    <div className="max-w-lg">
         <Button 
             variant="ghost" 
             onClick={() => router.push(`/silos/${siloId}`)} 
-            className="mb-4 pl-0 hover:bg-transparent hover:text-silo-action"
+            className="mb-4 pl-0 hover:bg-transparent hover:text-brand-500"
         >
             <ArrowLeft className="mr-2 h-5 w-5" />
             Voltar para Silo
@@ -120,7 +113,7 @@ export default function NewOperationPage({ params }: PageProps) {
                         className={`
                             flex flex-col items-center justify-center p-4 rounded-lg border-2 transition-all
                             ${eventType === 'USAGE' 
-                                ? 'border-silo-danger bg-red-50 text-silo-danger' 
+                                ? 'border-status-danger bg-red-50 text-status-danger' 
                                 : 'border-gray-200 text-gray-400 hover:border-gray-300'}
                         `}
                     >
@@ -141,7 +134,7 @@ export default function NewOperationPage({ params }: PageProps) {
                             value={amount}
                             onChange={(e) => setAmount(e.target.value)}
                             placeholder="0"
-                            className="flex h-16 w-full rounded-md border border-gray-300 bg-white px-4 py-2 text-3xl font-bold text-gray-900 focus:border-silo-action focus:ring-2 focus:ring-silo-action focus:outline-none placeholder:text-gray-300"
+                            className="flex h-16 w-full rounded-md border border-gray-300 bg-white px-4 py-2 text-3xl font-bold text-gray-900 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-none placeholder:text-gray-300"
                         />
                         <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">
                             KG
@@ -156,7 +149,7 @@ export default function NewOperationPage({ params }: PageProps) {
                 <Button 
                     onClick={handleSave} 
                     disabled={!amount || isSubmitting}
-                    className="w-full h-14 text-lg bg-silo-brand hover:bg-black"
+                    className="w-full h-14 text-lg bg-brand-900 hover:bg-brand-700"
                 >
                     <Save className="mr-2 h-5 w-5" />
                     Confirmar Lançamento
@@ -164,7 +157,6 @@ export default function NewOperationPage({ params }: PageProps) {
 
             </CardContent>
         </Card>
-      </main>
     </div>
   );
 }

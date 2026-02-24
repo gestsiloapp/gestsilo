@@ -1,7 +1,7 @@
 # 🚜 GestSilo - Contexto do Projeto e Status Atual
 
-**Última Atualização:** 25 de Janeiro de 2026  
-**Versão:** 4.0 (Rotas por Perfil – Manager / Operator)
+**Última Atualização:** 23 de Fevereiro de 2026  
+**Versão:** 5.0 (Backend Completo + Realtime + Deploy)
 
 ---
 
@@ -63,9 +63,10 @@ Sistema de gestão de silagem **Offline-First** para tratadores de gado.
 - **Frontend:** Next.js 14 (App Router)
 - **Estilo:** Tailwind CSS + Lucide Icons (Design System "Industrial Premium")
 - **Database Local:** RxDB (Community) com Storage Dexie (IndexedDB)
-- **Sync Strategy:** Manual "Outbox Pattern" via Status String ('PENDING' → 'SYNCED')
-- **Backend:** Supabase (Postgres + Auth) como backup/réplica passiva
+- **Sync Strategy:** Outbox Pattern ('PENDING' → 'SYNCED') + Realtime (Supabase → RxDB)
+- **Backend:** Supabase (Postgres + Auth + Realtime) como backup/réplica
 - **Autenticação:** Supabase Auth com Server Actions (SSR)
+- **Deploy:** Vercel + GitHub (gestsiloapp/gestsilo)
 
 ---
 
@@ -101,10 +102,12 @@ Sistema de gestão de silagem **Offline-First** para tratadores de gado.
 
 **Tabela `events`:**
 ```sql
+-- Schema base; migrations adicionaram farm_id (UUID, FK para farms)
 CREATE TABLE events (
     client_event_id UUID PRIMARY KEY,
     silo_id TEXT NOT NULL,
     user_id TEXT,
+    farm_id UUID REFERENCES farms(id),  -- Adicionado para multi-fazenda
     event_type TEXT NOT NULL CHECK (event_type IN ('LOADING', 'USAGE', 'COMPENSATION')),
     amount_kg NUMERIC NOT NULL,
     input_method TEXT,
@@ -162,10 +165,19 @@ CREATE POLICY "profiles_update_policy"
   - `OPERATOR` ou `ADMIN` → `/operator`
 - [x] **`get-user-profile.ts`:** Busca perfil na tabela `profiles` (role, full_name, email); fallback `OPERATOR` se perfil inexistente; redirect para `/login` se não autenticado
 - [x] **Manager Dashboard (`/manager`):** Lista de silos (SiloCard), links para Extrato e Operação (`/silos/[id]`, `/silos/[id]/new`)
-- [x] **Operator Dashboard (`/operator`):** UI de Operação Diária: modo IDLE → escolha Entrada (LOADING) ou Saída (USAGE); formulário simplificado (kg). *Ainda mock: não persiste no RxDB*
+- [x] **Operator Dashboard (`/operator`):** UI de Operação Diária conectada ao RxDB; persistência de retiradas/descartes com `sync_status: 'PENDING'`
 
-### 🟡 Em Desenvolvimento (não integrado)
-- [ ] **MainLayout:** Sidebar desktop, barra inferior mobile, indicador de sync, logout. Referencia rotas `/dashboards`, `/history`, `/settings`, `/team` e tokens Tailwind (`brand-*`, `earth-*`, `concrete-*`, `ui-*`, `status-*`) que não existem no `tailwind.config.js` – **não está em uso**; manager/operator usam `Header`
+### ✅ Módulos e Layout (v5.0)
+- [x] **MainLayout:** Sidebar desktop, barra inferior mobile, indicador de sync, logout – integrado ao `layout.tsx`
+- [x] **Rotas:** `/dashboards`, `/history`, `/settings` implementadas com dados do RxDB
+- [x] **Componentes:** `FieldList`, `SiloSelector`, `MainLayout` com tokens Tailwind (brand, earth, concrete, ui-*, status-*)
+
+### ✅ Sincronização e Realtime (v5.0)
+- [x] **Sync com farm_id:** Payload inclui `farm_id` (busca em silos ou fazenda padrão)
+- [x] **Sync automático:** Heartbeat a cada 2 minutos no `DatabaseProvider`
+- [x] **Realtime Supabase → RxDB:** Hook `useRealtimeSync` inscreve em `events` e `silos`; INSERT/UPDATE/DELETE refletidos no banco local
+
+### 🟡 Pendente
 - [ ] **seed.ts:** Módulo `seedSilos()` extraído; `db.ts` mantém seed inline – **não usado**
 
 ### ✅ Autenticação (v3.0)
@@ -195,16 +207,23 @@ gestsilo/
 │   ├── middleware.ts              # Guardião de rotas (proteção + sessão Supabase)
 │   ├── app/
 │   │   ├── page.tsx               # Bifurcação: getUserProfile → /manager ou /operator
-│   │   ├── layout.tsx             # Root Layout (DatabaseProvider)
+│   │   ├── layout.tsx             # Root Layout (DatabaseProvider + MainLayout)
 │   │   ├── globals.css            # Estilos globais
 │   │   ├── login/
 │   │   │   ├── actions.ts         # Server Actions (login, signup, logout)
 │   │   │   └── page.tsx           # Página unificada Login/Signup
 │   │   ├── (app)/                 # Route group (não altera URL)
 │   │   │   ├── manager/
-│   │   │   │   └── page.tsx       # Dashboard Gerente: lista de Silos (SiloCard)
+│   │   │   │   └── page.tsx       # Dashboard Gerente: lista de Silos (RxDB)
 │   │   │   └── operator/
-│   │   │       └── page.tsx       # Dashboard Operador: Operação Diária (Entrada/Saída)
+│   │   │       └── page.tsx       # Dashboard Operador: Operação Diária (RxDB)
+│   │   ├── (modules)/             # Módulos com MainLayout
+│   │   │   ├── dashboards/
+│   │   │   │   └── page.tsx       # Dashboards com dados RxDB
+│   │   │   ├── history/
+│   │   │   │   └── page.tsx       # Histórico de eventos
+│   │   │   └── settings/
+│   │   │       └── page.tsx       # Configurações
 │   │   └── silos/
 │   │       └── [id]/
 │   │           ├── page.tsx       # Extrato do Silo (EventHistory)
@@ -213,24 +232,28 @@ gestsilo/
 │   ├── components/
 │   │   ├── domain/
 │   │   │   ├── SiloCard.tsx       # Card visual do silo + saldo
-│   │   │   └── EventHistory.tsx   # Lista de eventos
+│   │   │   ├── EventHistory.tsx   # Lista de eventos
+│   │   │   ├── FieldList.tsx      # Lista de talhões
+│   │   │   └── SiloSelector.tsx   # Seletor de silos
 │   │   ├── ui/
 │   │   │   ├── Button.tsx
 │   │   │   └── Card.tsx
 │   │   ├── layout/
-│   │   │   ├── Header.tsx         # Header com logout (usado em manager, operator, silos)
-│   │   │   └── MainLayout.tsx     # Sidebar + nav mobile (em desenvolvimento, não integrado)
+│   │   │   ├── Header.tsx         # Header com logout
+│   │   │   └── MainLayout.tsx     # Sidebar + nav mobile (integrado)
 │   │   └── providers/
 │   │       └── DatabaseProvider.tsx
 │   ├── lib/
 │   │   ├── auth/
-│   │   │   └── get-user-profile.ts # Perfil + role no servidor (redirect se não autenticado)
+│   │   │   └── get-user-profile.ts # Perfil + role no servidor
 │   │   ├── database/
 │   │   │   ├── db.ts              # Inicialização RxDB + seed inline
-│   │   │   ├── schema.ts          # Schemas typed (events, silos)
-│   │   │   ├── seed.ts            # seedSilos() – módulo extraído (não usado; db.ts tem seed inline)
-│   │   │   ├── hooks.ts           # useRxData hook
+│   │   │   ├── schema.ts          # Schemas (events, silos, fields)
+│   │   │   ├── seed.ts            # seedSilos() – não usado
+│   │   │   ├── hooks.ts           # useRxData, useRxCollection, useSiloEvents
 │   │   │   └── RxDBHooksProvider.tsx
+│   │   ├── realtime/
+│   │   │   └── useRealtimeSync.ts # Supabase Realtime → RxDB
 │   │   ├── supabase/
 │   │   │   ├── client.ts          # Browser Client
 │   │   │   ├── server.ts          # Server Client
@@ -239,6 +262,8 @@ gestsilo/
 │   │   └── utils.ts               # Helpers
 │   └── hooks/
 │       └── useSiloBalance.ts      # Agregação de saldo (soma de eventos)
+├── docs/
+│   └── PROJECT_CONTEXT_AND_ARCHITECTURE.md
 ├── package.json
 ├── tsconfig.json
 ├── tailwind.config.js
@@ -278,13 +303,14 @@ await db.events.insert({
 // 3. UI atualiza instantaneamente (reatividade RxDB)
 ```
 
-### 6.3 Sincronização
+### 6.3 Sincronização (Push: RxDB → Supabase)
 ```typescript
 // Motor busca eventos pendentes
 const pending = await db.events.find({
   selector: { sync_status: { $eq: 'PENDING' } }
 });
 
+// Payload inclui farm_id (de silos ou fazenda padrão)
 // Envia para Supabase
 await supabase.from('events').upsert(payload);
 
@@ -294,9 +320,37 @@ await db.events.bulkUpsert(
 );
 ```
 
+### 6.4 Realtime (Pull: Supabase → RxDB)
+```typescript
+// useRealtimeSync inscreve em postgres_changes (events, silos)
+// INSERT/UPDATE: upsert no RxDB local
+// DELETE: remove do RxDB local
+// Mantém consistência multi-dispositivo/usuário
+```
+
 ---
 
 ## 7. Problemas Resolvidos (Changelog)
+
+### v5.0 - Backend Completo + Realtime + Deploy (23/02/2026) 🎉
+**Conquistas:**
+1. ✅ **Operator conectado ao RxDB:** Persistência de retiradas/descartes com `sync_status: 'PENDING'`
+2. ✅ **Manager/Dashboards com dados reais:** RxDB em vez de mocks
+3. ✅ **MainLayout integrado:** Sidebar, nav mobile, rotas `/dashboards`, `/history`, `/settings`
+4. ✅ **Sync com farm_id:** Payload inclui farm_id (busca em silos ou fazenda padrão)
+5. ✅ **Realtime Supabase → RxDB:** Hook `useRealtimeSync` sincroniza mudanças de outros dispositivos/usuários
+6. ✅ **Deploy Vercel:** Build corrigido (fix tipo RxDB subscribe em `hooks.ts`), push GitHub
+7. ✅ **Configuração Supabase:** URLs de produção, RLS policies, Realtime (events, silos), fazenda padrão
+
+**Arquivos Criados/Modificados:**
+- `src/lib/realtime/useRealtimeSync.ts` (novo)
+- `src/lib/database/hooks.ts` (fix: `as any` para collection.$.subscribe)
+- `src/components/providers/DatabaseProvider.tsx` (useRealtimeSync)
+- `src/app/layout.tsx` (MainLayout)
+- `src/app/(modules)/dashboards/page.tsx`, `history/page.tsx`, `settings/page.tsx`
+- `src/components/domain/FieldList.tsx`, `SiloSelector.tsx`
+- `src/components/layout/MainLayout.tsx` (integrado)
+- `src/lib/sync.ts` (farm_id no payload)
 
 ### v4.0 - Rotas por Perfil – Manager / Operator (25/01/2026) 🎉
 **Conquistas:**
@@ -370,13 +424,35 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJxxx...
 
 **3. URL Configuration:**
 ```
-Site URL: http://localhost:3000
+Site URL: http://localhost:3000  (dev) | https://gestsilo.vercel.app (prod)
 Redirect URLs: 
   - http://localhost:3000
   - http://localhost:3000/**
+  - https://gestsilo.vercel.app
+  - https://gestsilo.vercel.app/**
+  - https://*.vercel.app/**
 ```
 
-### 8.3 Comandos
+**4. Realtime (Postgres Changes):**
+```sql
+ALTER PUBLICATION supabase_realtime ADD TABLE events;
+ALTER PUBLICATION supabase_realtime ADD TABLE silos;
+```
+
+**5. Fazenda padrão (obrigatório para sync):**
+```sql
+INSERT INTO farms (id, name, settings, created_at, updated_at)
+VALUES (gen_random_uuid(), 'Fazenda Principal', '{}'::jsonb, NOW(), NOW());
+```
+
+**6. RLS Policies:** profiles, farms, silos, events, fields, bromatology_analyses (ver SQL na seção 12)
+
+### 8.3 Deploy (Vercel)
+- Variáveis: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (All Environment)
+- Repositório: https://github.com/gestsiloapp/gestsilo
+- `vercel link` para conectar projeto local
+
+### 8.4 Comandos
 ```bash
 npm install          # Instalar dependências
 npm run dev          # Servidor de desenvolvimento (porta 3000-3002)
@@ -388,24 +464,28 @@ npm run start        # Servidor de produção
 
 ## 9. Tarefas Futuras (Backlog)
 
-### 🔜 Prioridade Alta
-- [ ] **Conectar Operator ao RxDB:** Formulário de Entrada/Saída em `/operator` persistir eventos (seleção de silo, amount_kg, event_type)
-- [ ] **Integrar MainLayout:** Layout `(app)` com `MainLayout` (sidebar + nav mobile), ou migrar tokens (brand, earth, concrete, ui-*, status-*) para `tailwind.config.js` e ativar
-- [ ] Sincronização automática em background (intervalo configurável)
-- [ ] Indicador visual de conexão/offline (MainLayout já tem esboço; conectar ao RxDB/sync)
-- [ ] Retry logic para falhas de sincronização
-- [ ] Exibir informações do usuário logado no Header (usar `getUserProfile` ou dados da sessão)
+### ✅ Concluído (v5.0)
+- [x] Conectar Operator ao RxDB
+- [x] Integrar MainLayout
+- [x] Sincronização automática em background (2 min)
+- [x] Rotas `/dashboards`, `/history`, `/settings`
+- [x] Realtime Supabase → RxDB
 
-### 🔜 Rotas e Módulos Pendentes
-- [ ] Rotas referenciadas no MainLayout: `/dashboards`, `/history`, `/settings`, `/team`
-- [ ] Unificar seed: usar `seed.ts` em `db.ts` ou remover `seed.ts` e manter só inline
+### 🔜 Prioridade Alta
+- [ ] Indicador visual de conexão/offline (conectar ao estado real de sync)
+- [ ] Retry logic para falhas de sincronização
+- [ ] Exibir informações do usuário logado no Header (getUserProfile)
+- [ ] Rota `/team` (Equipe)
+
+### 🔜 Pendentes
+- [ ] Unificar seed: usar `seed.ts` em `db.ts` ou remover `seed.ts`
 
 ### 🔮 Melhorias Futuras
 - [ ] Multi-usuário com permissões (admin/tratador) – base em `profiles.role` já existe
 - [ ] Relatórios e gráficos de consumo
 - [ ] Exportação de dados (CSV/PDF)
 - [ ] Notificações push (alertas de estoque baixo)
-- [ ] Sincronização bidirecional (Pull + Push)
+- [x] Sincronização bidirecional: Push (sync) + Pull (Realtime) ✅
 - [ ] Modo câmera para fotos dos silos
 - [ ] Geolocalização dos silos
 
@@ -453,9 +533,9 @@ Abrir em aba anônima
 - Logout funcional no header (e no MainLayout quando integrado)
 - Bifurcação por `profiles.role` em `/` → `/manager` ou `/operator`
 
-### 📁 Componentes e Módulos em Transição
-- **MainLayout:** Componente com sidebar/nav; não está em uso. Depende de tokens Tailwind (`brand-*`, `earth-*`, `concrete-*`, `ui-*`, `status-*`) e das rotas `/dashboards`, `/history`, `/settings`, `/team`. Integração futura via `layout.tsx` do route group `(app)`.
-- **seed.ts:** `seedSilos()` extraído; `db.ts` ainda faz seed inline. Decidir: passar a usar `seed.ts` em `db.ts` ou remover `seed.ts`.
+### 📁 Componentes e Módulos
+- **MainLayout:** Integrado ao `layout.tsx`; sidebar desktop, nav mobile, rotas `/dashboards`, `/history`, `/settings`.
+- **seed.ts:** `seedSilos()` extraído; `db.ts` mantém seed inline. Pendente: unificar ou remover.
 
 ---
 
@@ -501,7 +581,16 @@ SELECT policyname, cmd FROM pg_policies WHERE tablename = 'profiles';
 ### Problema: Middleware redirecionando incorretamente
 **Solução:** Verificar rotas públicas em `src/lib/supabase/middleware.ts`
 
+### Problema: "Repository not found" ao fazer git push
+**Solução:** Credenciais GitHub travadas no Windows. Gerenciador de Credenciais → remover entradas `git:https://github.com`. Ou: `cmdkey /delete:git:https://github.com`
+
+### Problema: Build falha com "This expression is not callable" em hooks.ts
+**Solução:** Erro de union type do RxDB em `collection.$.subscribe`. Usar `(collection as any).$.subscribe()`.
+
+### Problema: Realtime logs vazios no Supabase
+**Solução:** Verificar se `events` e `silos` estão em `supabase_realtime` (SQL Editor). Logs só aparecem quando o app está aberto com usuário logado.
+
 ---
 
-**Status Geral:** ✅ **Produção-Ready** (autenticação + rotas por perfil)  
-**Próximo Marco:** Conectar Operator ao RxDB e integrar MainLayout (v4.1)
+**Status Geral:** ✅ **Produção-Ready** (backend completo, Realtime, deploy Vercel)  
+**Próximo Marco:** PWA Service Worker, testes em produção

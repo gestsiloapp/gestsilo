@@ -2,7 +2,6 @@
 
 import { useRxData } from '@/lib/database/hooks';
 import { useRouter } from 'next/navigation';
-import { Header } from '@/components/layout/Header';
 import { Button } from '@/components/ui/Button';
 import { ArrowLeft, Plus } from 'lucide-react';
 import { SiloCard } from '@/components/domain/SiloCard';
@@ -27,10 +26,8 @@ export default function SiloDetailsPage({ params }: PageProps) {
   if (!silo) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <Header />
-      
-      <main className="container mx-auto px-4 py-8 max-w-2xl">
+    <div className="pb-20">
+      <div className="max-w-2xl">
         <Button 
             variant="ghost" 
             onClick={() => router.push('/')} 
@@ -58,7 +55,7 @@ export default function SiloDetailsPage({ params }: PageProps) {
 
         {/* Lista de Histórico */}
         <EventHistory siloId={siloId} />
-      </main>
+      </div>
     </div>
   );
 }

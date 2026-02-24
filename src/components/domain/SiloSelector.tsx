@@ -16,7 +16,7 @@ interface SiloSelectorProps {
   onSelect: (id: string) => void;
 }
 
-export const SiloSelector = ({ silos, selectedId, onSelect }: SiloSelectorProps) => {
+export const SiloSelector: React.FC<SiloSelectorProps> = ({ silos, selectedId, onSelect }) => {
   return (
     <div className="w-full overflow-x-auto pb-4 pt-2 px-4 no-scrollbar flex gap-4 snap-x">
       {silos.map((silo) => {

@@ -5,8 +5,9 @@ import {
 } from 'rxdb';
 
 // --- SCHEMA DE EVENTOS ---
+// version 1: migração de synced_at → sync_status (v2.1)
 export const eventSchemaLiteral = {
-  version: 0,
+  version: 1,
   primaryKey: 'client_event_id',
   type: 'object',
   properties: {
@@ -26,9 +27,6 @@ export const eventSchemaLiteral = {
     },
     created_at: { type: 'string', format: 'date-time' },
     updated_at: { type: 'string', format: 'date-time' },
-    
-    // MUDANÇA CRÍTICA: Trocamos 'synced_at' (null) por 'sync_status' (string)
-    // Isso evita o erro de índice inválido no IndexedDB
     sync_status: {
         type: 'string',
         enum: ['PENDING', 'SYNCED'],
@@ -36,9 +34,26 @@ export const eventSchemaLiteral = {
     }
   },
   required: ['client_event_id', 'silo_id', 'event_type', 'amount_kg', 'created_at', 'updated_at', 'sync_status'],
-  // Agora podemos indexar com segurança, pois não haverá NULL
-  indexes: ['sync_status', 'silo_id'] 
+  indexes: ['sync_status', 'silo_id']
 } as const;
+
+/** Migra schema antigo (synced_at) para novo (sync_status) */
+export const eventMigrationStrategies = {
+  1: (oldDoc: Record<string, unknown>) => {
+    const sync_status = oldDoc.synced_at ? 'SYNCED' : 'PENDING';
+    return {
+      client_event_id: oldDoc.client_event_id,
+      silo_id: oldDoc.silo_id,
+      user_id: oldDoc.user_id ?? undefined,
+      event_type: oldDoc.event_type,
+      amount_kg: oldDoc.amount_kg,
+      input_method: oldDoc.input_method ?? 'MANUAL_KG',
+      created_at: oldDoc.created_at,
+      updated_at: oldDoc.updated_at,
+      sync_status,
+    };
+  },
+};
 
 const eventSchemaTyped = toTypedRxJsonSchema(eventSchemaLiteral);
 export type EventDocType = ExtractDocumentTypeFromTypedRxJsonSchema<typeof eventSchemaTyped>;

@@ -1,27 +1,24 @@
-import type { Metadata } from "next";
-import "./globals.css";
-import { DatabaseProvider } from "@/components/providers/DatabaseProvider";
-import { MainLayout } from "@/components/layout/MainLayout";
+import './globals.css';
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: "GestSilo",
-  description: "Gestão de Silagem Offline-First",
-  manifest: "/manifest.json", // Preparando terreno para PWA
+  title: 'GestSilo',
+  description: 'Gestão Inteligente de Silagem - PWA Offline-First',
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="pt-BR">
-      <body>
-        <DatabaseProvider>
-          <MainLayout>
-            {children}
-          </MainLayout>
-        </DatabaseProvider>
+      <body className={inter.className}>
+        {children}
       </body>
     </html>
   );
