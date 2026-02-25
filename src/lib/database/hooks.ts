@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, DependencyList } from 'react';
 import { RxCollection, RxDocument } from 'rxdb';
 import { useDatabase } from '@/components/providers/DatabaseProvider';
 import { useRxDatabase } from './RxDBHooksProvider';
@@ -102,13 +102,27 @@ export function useSiloEvents(siloId: string | null) {
 }
 
 /**
+ * Hook que retorna a coleção RxDB pelo nome (para insert, etc.)
+ */
+export function useRxCollectionByName(collectionName: 'silos' | 'events' | 'analyses') {
+  let db;
+  try {
+    db = useRxDatabase();
+  } catch {
+    db = useDatabase();
+  }
+  return db ? (db[collectionName] as RxCollection<any>) : null;
+}
+
+/**
  * Hook compatível com rxdb-hooks useRxData
  * Retorna dados reativos de uma coleção RxDB
  * Usa o Provider do rxdb-hooks para acessar o banco
  */
 export function useRxData<T = any>(
-  collectionName: 'silos' | 'events',
-  queryFn: (collection: RxCollection<any>) => any
+  collectionName: 'silos' | 'events' | 'analyses',
+  queryFn: (collection: RxCollection<any>) => any,
+  deps?: DependencyList
 ) {
   // Tenta usar o Provider do rxdb-hooks primeiro, fallback para useDatabase
   let db;
@@ -156,7 +170,7 @@ export function useRxData<T = any>(
     return () => {
       subscription.unsubscribe();
     };
-  }, [db, collectionName]);
+  }, [db, collectionName, ...(deps ?? [])]);
 
   return { result, isFetching };
 }

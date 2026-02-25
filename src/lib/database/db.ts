@@ -3,6 +3,7 @@ import { getRxStorageDexie } from 'rxdb/plugins/storage-dexie';
 import { RxDBMigrationPlugin } from 'rxdb/plugins/migration-schema';
 import { RxDBQueryBuilderPlugin } from 'rxdb/plugins/query-builder';
 import { eventSchema, eventMigrationStrategies, EventDocType, siloSchema, SiloDocType, fieldSchema, FieldDocType } from './schema';
+import { analysisSchema, AnalysisDocType } from './analysis.schema';
 
 addRxPlugin(RxDBMigrationPlugin);
 addRxPlugin(RxDBQueryBuilderPlugin);
@@ -11,7 +12,8 @@ import { v4 as uuidv4 } from 'uuid';
 export type GestSiloCollections = {
   events: RxCollection<EventDocType>;
   silos: RxCollection<SiloDocType>;
-  fields: RxCollection<FieldDocType>; // Nova coleção de campos
+  fields: RxCollection<FieldDocType>;
+  analyses: RxCollection<AnalysisDocType>;
 };
 
 export type GestSiloDatabase = RxDatabase<GestSiloCollections>;
@@ -34,6 +36,7 @@ const _create = async (): Promise<GestSiloDatabase> => {
     },
     silos: { schema: siloSchema },
     fields: { schema: fieldSchema },
+    analyses: { schema: analysisSchema },
   });
 
   // --- SEED (POPULAÇÃO INICIAL) ---
