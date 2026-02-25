@@ -120,7 +120,7 @@ export default function AnalyticsDashboard() {
                      <span className={`text-xs font-bold px-2 py-0.5 rounded-md ${isCritical ? 'bg-red-50 text-status-danger' : 'bg-concrete-100 text-ui-muted'}`}>
                         {silo.daysRemaining} dias
                      </span>
-                     <span className="text-sm font-bold text-brand-900">{silo.currentStock / 1000}t</span> {/* Convert kg to tons */}
+                     <span className="text-sm font-bold text-brand-900">{silo.currentStock / 1000}t</span>
                   </div>
                 </div>
                 
@@ -132,14 +132,12 @@ export default function AnalyticsDashboard() {
                     }`}
                     style={{ width: `${percentage}%` }}
                   >
-                     {/* Texto dentro da barra se houver espaço */}
                      {percentage > 15 && (
                         <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-white/90">
                             {percentage}%
                         </span>
                      )}
                   </div>
-                  {/* Linhas de Grade Verticais */}
                   <div className="absolute inset-0 flex justify-evenly pointer-events-none">
                     <div className="w-px h-full bg-white/50" />
                     <div className="w-px h-full bg-white/50" />
@@ -160,7 +158,6 @@ export default function AnalyticsDashboard() {
         </div>
 
         <div className="bg-earth-100/50 rounded-3xl p-6 border border-earth-100 space-y-4">
-           {/* Card de Alerta */}
            <div className="flex items-start gap-4 bg-white p-5 rounded-2xl border border-earth-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
               <div className="w-12 h-12 rounded-full bg-earth-100 flex items-center justify-center text-earth-500 flex-shrink-0">
                 <PieChart size={24} />

@@ -1,5 +1,10 @@
 'use client';
 
+/**
+ * Layout único para todas as rotas autenticadas do app.
+ * Sidebar: Visão Geral, Dashboards, Histórico, Equipe, Ajustes.
+ * Margem do conteúdo: 1,5cm.
+ */
 import React from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { LayoutDashboard, History, Settings, BarChart3, Wifi, WifiOff, Users, LogOut, Sprout } from "lucide-react";
@@ -16,6 +21,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   // Verifica qual menu está ativo
   const isActive = (path: string) => {
     if (path === '/manager' && (pathname === '/manager' || pathname === '/')) return true;
+    if (path === '/dashboards' && pathname === '/dashboards') return true;
     return pathname.startsWith(path);
   };
 
@@ -85,6 +91,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <LayoutDashboard size={20} /> <span>Visão Geral</span>
           </button>
           
+          <button onClick={() => handleNavigation('/dashboards')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-300 ${isActive('/dashboards') ? 'bg-white/10 text-earth-400 border-l-4 border-earth-500 font-bold' : 'text-brand-100 hover:bg-white/5 hover:text-white font-medium'}`}>
+            <BarChart3 size={20} /> <span>Dashboards</span>
+          </button>
+          
           <button onClick={() => handleNavigation('/history')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-300 ${isActive('/history') ? 'bg-white/10 text-earth-400 border-l-4 border-earth-500 font-bold' : 'text-brand-100 hover:bg-white/5 hover:text-white font-medium'}`}>
             <History size={20} /> <span>Histórico</span>
           </button>
@@ -108,8 +118,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      {/* --- ÁREA DE CONTEÚDO (Onde as páginas aparecem) --- */}
-      <main className="pt-20 px-6 sm:px-10 lg:px-12 w-full min-h-[calc(100vh-5rem)]">
+      {/* --- ÁREA DE CONTEÚDO (Margem 1,5cm das barras) --- */}
+      <main className="pt-[calc(4rem+1.5cm)] pb-[1.5cm] pl-[1.5cm] pr-[1.5cm] w-full min-h-screen">
         {children}
       </main>
 
@@ -117,6 +127,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-concrete-100 h-16 flex items-center justify-around z-50 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
         <button onClick={() => handleNavigation('/manager')} className={`flex flex-col items-center justify-center w-full h-full transition-colors ${isActive('/manager') ? 'text-brand-900 border-t-2 border-brand-900' : 'text-slate-400 hover:text-brand-900'}`}>
           <LayoutDashboard size={20} /> <span className="text-[10px] mt-1 font-medium">Início</span>
+        </button>
+        
+        <button onClick={() => handleNavigation('/dashboards')} className={`flex flex-col items-center justify-center w-full h-full transition-colors ${isActive('/dashboards') ? 'text-brand-900 border-t-2 border-brand-900' : 'text-slate-400 hover:text-brand-900'}`}>
+          <BarChart3 size={20} /> <span className="text-[10px] mt-1 font-medium">Dash</span>
         </button>
         
         <button onClick={() => handleNavigation('/history')} className={`flex flex-col items-center justify-center w-full h-full transition-colors ${isActive('/history') ? 'text-brand-900 border-t-2 border-brand-900' : 'text-slate-400 hover:text-brand-900'}`}>

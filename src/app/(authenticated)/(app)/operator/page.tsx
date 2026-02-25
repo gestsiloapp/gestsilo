@@ -124,7 +124,7 @@ export default function OperatorMode() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col pb-safe-area animate-fade-in -mt-6">
+    <div className="min-h-screen bg-slate-50 flex flex-col pb-safe-area animate-fade-in w-full md:max-w-xl md:mx-auto md:shadow-lg md:rounded-2xl">
 
       {/* 1. Header Compacto Mobile */}
       <header className="px-4 pt-6 pb-4 bg-white shadow-sm flex justify-between items-center sticky top-0 z-10">

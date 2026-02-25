@@ -1,5 +1,9 @@
 'use client';
 
+/**
+ * @deprecated Layout legado. O app usa (app)/layout.tsx como layout único.
+ * Mantido para referência ou cenários alternativos (ex: AppShell).
+ */
 import React, { useState, useEffect } from 'react';
 import { LayoutDashboard, History, Settings, BarChart3, Wifi, WifiOff } from "lucide-react";
 import { useRouter, usePathname } from 'next/navigation';
@@ -161,8 +165,8 @@ export const MainLayout: React.FC<LayoutProps> = ({ children }) => {
         </div>
       </aside>
 
-      {/* --- ÁREA DE CONTEÚDO (Onde as páginas aparecem) --- */}
-      <main className="pt-20 px-6 sm:px-10 lg:px-12 w-full min-h-[calc(100vh-5rem)]">
+      {/* --- ÁREA DE CONTEÚDO (Margem 1,5cm das barras) --- */}
+      <main className="pt-[calc(4rem+1.5cm)] pb-[1.5cm] pl-[1.5cm] pr-[1.5cm] w-full min-h-screen">
         {children}
       </main>
 
