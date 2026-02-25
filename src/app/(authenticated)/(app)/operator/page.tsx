@@ -96,9 +96,9 @@ export default function OperatorMode() {
         client_event_id: uuidv4(),
         silo_id: selectedSilo,
         user_id: 'local_operator_id',
-        event_type: type === 'retirada' ? 'USAGE' : 'COMPENSATION',
+        event_type: (type === 'retirada' ? 'USAGE' : 'COMPENSATION') as 'USAGE' | 'COMPENSATION',
         amount_kg: -Math.abs(amountKg),
-        input_method: unit === 'kg' ? 'MANUAL_KG' : (unit === 'concha' ? 'BUCKET_COUNT' : 'WAGON_COUNT'),
+        input_method: (unit === 'kg' ? 'MANUAL_KG' : unit === 'concha' ? 'BUCKET_COUNT' : 'WAGON_COUNT') as 'MANUAL_KG' | 'BUCKET_COUNT' | 'WAGON_COUNT',
         sync_status: 'PENDING' as const,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()

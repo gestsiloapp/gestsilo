@@ -196,10 +196,10 @@ export default function SiloDetails() {
 
                 {latestAnalysis ? (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                    <QualityIndicator label="Matéria Seca" value={latestAnalysis.dryMatter} unit="%" ideal="30-35" />
-                    <QualityIndicator label="pH" value={latestAnalysis.ph} unit="" ideal="3.8-4.2" invertColor />
-                    <QualityIndicator label="Amido" value={latestAnalysis.starch} unit="%" ideal="> 30" />
-                    <QualityIndicator label="Energia (NDT)" value={latestAnalysis.ndt} unit="%" ideal="> 68" />
+                    <QualityIndicator label="Matéria Seca" value={latestAnalysis.dryMatter ?? 0} unit="%" ideal="30-35" />
+                    <QualityIndicator label="pH" value={latestAnalysis.ph ?? 0} unit="" ideal="3.8-4.2" invertColor />
+                    <QualityIndicator label="Amido" value={latestAnalysis.starch ?? 0} unit="%" ideal="> 30" />
+                    <QualityIndicator label="Energia (NDT)" value={latestAnalysis.ndt ?? 0} unit="%" ideal="> 68" />
                   </div>
                 ) : (
                   <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">

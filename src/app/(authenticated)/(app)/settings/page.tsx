@@ -4,11 +4,13 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Tractor, Package, Users, Scale, MapPin, FileText, ChevronRight, 
-  ArrowLeft, Save, Wrench, AlertCircle, ShieldCheck 
+  ArrowLeft, Save, Wrench, AlertCircle, ShieldCheck, LogOut 
 } from "lucide-react";
+import { createClient } from '@/lib/supabase/client';
 
 export default function SettingsPage() {
   const router = useRouter();
+  const supabase = createClient();
   const [activeView, setActiveView] = useState<'main' | 'machinery' | 'conversion'>('main');
   
   // --- ESTADO: FATORES DE CONVERSÃO ---
@@ -104,6 +106,18 @@ export default function SettingsPage() {
             </button>
           </div>
         </div>
+
+        <button
+          onClick={async () => {
+            await supabase.auth.signOut();
+            router.push('/login');
+            router.refresh();
+          }}
+          className="w-full flex items-center justify-center gap-2 p-4 mt-6 rounded-xl border border-red-100 text-red-600 bg-red-50 hover:bg-red-100 transition-colors font-bold text-sm"
+        >
+          <LogOut size={18} />
+          Sair da Conta
+        </button>
       </div>
     );
   }
