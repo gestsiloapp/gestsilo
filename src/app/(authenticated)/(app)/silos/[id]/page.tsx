@@ -228,7 +228,7 @@ export default function SiloDetails() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-9">
                   <div>
                     <label className="block text-sm font-bold text-slate-500 uppercase mb-2.5">Data do Laudo</label>
-                    <input type="date" value={analysisForm.date} onChange={e => setAnalysisForm({ ...analysisForm, date: e.target.value })} className="w-full p-4 rounded-xl border border-concrete-200 bg-white font-medium text-base focus:outline-none focus:ring-2 focus:ring-earth-400" />
+                    <input type="date" value={analysisForm.date} onChange={e => setAnalysisForm({ ...analysisForm, date: (e.target as unknown as { value: string }).value })} className="w-full p-4 rounded-xl border border-concrete-200 bg-white font-medium text-base focus:outline-none focus:ring-2 focus:ring-earth-400" />
                   </div>
                   <div className="hidden md:block"></div>
 
@@ -395,7 +395,7 @@ const InputMetric = ({ label, value, unit, onChange }: { label: string; value: n
   <div>
     <label className="block text-base font-bold text-slate-500 uppercase mb-3">{label}</label>
     <div className="relative group">
-      <input type="number" step="0.1" value={value || ''} onChange={e => onChange(parseFloat(e.target.value) || 0)} className="w-full p-6 rounded-xl border border-concrete-200 bg-white font-bold text-2xl text-brand-900 focus:outline-none focus:border-earth-400 focus:ring-1 focus:ring-earth-400 transition-colors" placeholder="0.0" />
+      <input type="number" step="0.1" value={value || ''} onChange={e => onChange(parseFloat((e.target as unknown as { value: string }).value) || 0)} className="w-full p-6 rounded-xl border border-concrete-200 bg-white font-bold text-2xl text-brand-900 focus:outline-none focus:border-earth-400 focus:ring-1 focus:ring-earth-400 transition-colors" placeholder="0.0" />
       {unit && <span className="absolute right-6 top-1/2 -translate-y-1/2 text-lg text-concrete-400 font-bold">{unit}</span>}
     </div>
   </div>

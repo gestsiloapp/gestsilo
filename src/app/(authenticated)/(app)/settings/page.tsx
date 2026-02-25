@@ -147,7 +147,7 @@ export default function SettingsPage() {
                 <input 
                   type="number" 
                   value={conversionFactors.concha}
-                  onChange={e => setConversionFactors({...conversionFactors, concha: Number(e.target.value)})}
+                  onChange={e => setConversionFactors({...conversionFactors, concha: Number((e.target as unknown as { value: string }).value) || 0})}
                   className="w-full p-5 rounded-xl border-2 border-concrete-100 bg-slate-50 font-bold text-2xl text-brand-900 focus:outline-none focus:border-earth-400 focus:bg-white transition-all"
                 />
                 <span className="absolute right-5 top-1/2 -translate-y-1/2 text-base font-bold text-slate-400">KG</span>
@@ -160,7 +160,7 @@ export default function SettingsPage() {
                 <input 
                   type="number" 
                   value={conversionFactors.vagao}
-                  onChange={e => setConversionFactors({...conversionFactors, vagao: Number(e.target.value)})}
+                  onChange={e => setConversionFactors({...conversionFactors, vagao: Number((e.target as unknown as { value: string }).value) || 0})}
                   className="w-full p-5 rounded-xl border-2 border-concrete-100 bg-slate-50 font-bold text-2xl text-brand-900 focus:outline-none focus:border-earth-400 focus:bg-white transition-all"
                 />
                 <span className="absolute right-5 top-1/2 -translate-y-1/2 text-base font-bold text-slate-400">KG</span>

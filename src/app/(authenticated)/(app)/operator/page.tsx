@@ -84,7 +84,7 @@ export default function OperatorMode() {
   const handleAction = async (type: 'retirada' | 'descarte') => {
     if (!amount || parseFloat(amount) <= 0 || !selectedSilo) return;
 
-    if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(50);
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) (navigator as { vibrate: (v: number) => boolean }).vibrate(50);
 
     const amountKg = parseFloat(amount) * CONVERSION_RATES[unit];
 
@@ -106,11 +106,11 @@ export default function OperatorMode() {
 
       await db.events.insert(eventPayload);
 
-      alert(`${type === 'retirada' ? '✅ Retirada' : '⚠️ Descarte'} de ${amount} ${unit === 'vagao' ? 'vagões' : unit + 's'} registrada!`);
+      (globalThis as unknown as { alert?: (m: string) => void }).alert?.(`${type === 'retirada' ? '✅ Retirada' : '⚠️ Descarte'} de ${amount} ${unit === 'vagao' ? 'vagões' : unit + 's'} registrada!`);
       setAmount('');
     } catch (error) {
       console.error("Erro ao registrar operação:", error);
-      alert("Falha ao registrar operação localmente.");
+      (globalThis as unknown as { alert?: (m: string) => void }).alert?.("Falha ao registrar operação localmente.");
     }
   };
 
@@ -198,7 +198,7 @@ export default function OperatorMode() {
             <input
               type="number"
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              onChange={(e) => setAmount((e.target as unknown as { value: string }).value ?? '')}
               placeholder="0"
               className="w-full text-center text-7xl font-bold text-brand-900 placeholder:text-concrete-200 outline-none bg-transparent"
               inputMode="decimal"

@@ -112,7 +112,7 @@ export default function LoginPage() {
                     required
                     className="w-full pl-12 pr-5 py-3.5 rounded-xl bg-concrete-100 border-2 border-transparent focus:bg-white focus:border-earth-400 focus:ring-0 outline-none text-brand-900 placeholder-concrete-500 transition-all font-medium"
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    onChange={(e) => setName((e.target as unknown as { value: string }).value)}
                 />
             </div>
           )}
@@ -128,7 +128,7 @@ export default function LoginPage() {
               required
               className="w-full pl-12 pr-5 py-3.5 rounded-xl bg-concrete-100 border-2 border-transparent focus:bg-white focus:border-earth-400 focus:ring-0 outline-none text-brand-900 placeholder-concrete-500 transition-all font-medium"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => setEmail((e.target as unknown as { value: string }).value)}
             />
           </div>
 
@@ -143,7 +143,7 @@ export default function LoginPage() {
               required
               className="w-full pl-12 pr-12 py-3.5 rounded-xl bg-concrete-100 border-2 border-transparent focus:bg-white focus:border-earth-400 focus:ring-0 outline-none text-brand-900 placeholder-concrete-500 transition-all font-medium"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => setPassword((e.target as unknown as { value: string }).value)}
             />
             <button 
                 type="button"

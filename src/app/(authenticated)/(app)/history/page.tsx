@@ -108,7 +108,7 @@ export default function HistoryPage() {
               placeholder="Buscar operador ou atividade..."
               className="w-full pl-10 pr-4 py-2 bg-concrete-100 border-transparent focus:bg-white focus:border-brand-900 focus:ring-1 focus:ring-brand-900 rounded-xl text-sm outline-none transition-all placeholder:text-concrete-500 text-brand-900"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => setSearchTerm((e.target as unknown as { value: string }).value ?? '')}
             />
           </div>
 

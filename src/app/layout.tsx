@@ -1,13 +1,30 @@
 import './globals.css';
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
+import { SerwistProvider } from './serwist';
 
 const inter = Inter({ subsets: ['latin'] });
 
+const APP_NAME = 'GestSilo';
+const APP_DESCRIPTION = 'Gestão Inteligente de Silagem - PWA Offline-First';
+
 export const metadata: Metadata = {
-  title: 'GestSilo',
-  description: 'Gestão Inteligente de Silagem - PWA Offline-First',
+  applicationName: APP_NAME,
+  title: { default: APP_NAME, template: `%s | ${APP_NAME}` },
+  description: APP_DESCRIPTION,
   manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: APP_NAME,
+  },
+  formatDetection: { telephone: false },
+};
+
+export const viewport: Viewport = {
+  themeColor: '#064e3b',
+  width: 'device-width',
+  initialScale: 1,
 };
 
 export default function RootLayout({
@@ -18,7 +35,9 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body className={inter.className}>
-        {children}
+        <SerwistProvider swUrl="/serwist/sw.js">
+          {children}
+        </SerwistProvider>
       </body>
     </html>
   );

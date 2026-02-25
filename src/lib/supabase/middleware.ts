@@ -37,7 +37,7 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   // Define rotas públicas (acessíveis sem login)
-  const publicRoutes = ['/login'];
+  const publicRoutes = ['/login', '/serwist', '/offline'];
   const isPublicRoute = publicRoutes.some(route =>
     request.nextUrl.pathname.startsWith(route)
   );

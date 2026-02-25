@@ -132,7 +132,7 @@ export default function NewOperationPage({ params }: PageProps) {
                             type="number"
                             inputMode="numeric"
                             value={amount}
-                            onChange={(e) => setAmount(e.target.value)}
+                            onChange={(e) => setAmount((e.target as unknown as { value: string }).value ?? '')}
                             placeholder="0"
                             className="flex h-16 w-full rounded-md border border-gray-300 bg-white px-4 py-2 text-3xl font-bold text-gray-900 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-none placeholder:text-gray-300"
                         />

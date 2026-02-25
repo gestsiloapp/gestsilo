@@ -46,7 +46,7 @@ export const NewFieldForm: React.FC<NewFieldFormProps> = ({ onCancel, onSave }) 
                 placeholder="Ex: Talhão Alvorada"
                 className="w-full px-4 py-3 rounded-lg border border-concrete-100 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all outline-none bg-ui-bg text-ui-text font-medium"
                 value={formData.name}
-                onChange={e => setFormData({...formData, name: e.target.value})}
+                onChange={e => setFormData({...formData, name: (e.target as unknown as { value: string }).value})}
               />
             </div>
 
@@ -63,7 +63,7 @@ export const NewFieldForm: React.FC<NewFieldFormProps> = ({ onCancel, onSave }) 
                   placeholder="0.0"
                   className="w-full px-4 py-3 rounded-lg border border-concrete-100 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all outline-none bg-ui-bg text-ui-text font-medium"
                   value={formData.area}
-                  onChange={e => setFormData({...formData, area: e.target.value})}
+                  onChange={e => setFormData({...formData, area: (e.target as unknown as { value: string }).value})}
                 />
               </div>
               
@@ -74,7 +74,7 @@ export const NewFieldForm: React.FC<NewFieldFormProps> = ({ onCancel, onSave }) 
                 <select 
                   className="w-full px-4 py-3 rounded-lg border border-concrete-100 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all outline-none bg-ui-bg text-ui-text font-medium appearance-none"
                   value={formData.culture}
-                  onChange={e => setFormData({...formData, culture: e.target.value})}
+                  onChange={e => setFormData({...formData, culture: (e.target as unknown as { value: string }).value})}
                 >
                   <option value="Milho">Milho</option>
                   <option value="Sorgo">Sorgo</option>
@@ -90,7 +90,7 @@ export const NewFieldForm: React.FC<NewFieldFormProps> = ({ onCancel, onSave }) 
               <select 
                 className="w-full px-4 py-3 rounded-lg border border-concrete-100 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all outline-none bg-ui-bg text-ui-text font-medium appearance-none"
                 value={formData.soilType}
-                onChange={e => setFormData({...formData, soilType: e.target.value})}
+                onChange={e => setFormData({...formData, soilType: (e.target as unknown as { value: string }).value})}
               >
                 <option value="Argiloso">Argiloso</option>
                 <option value="Arenoso">Arenoso</option>

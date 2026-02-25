@@ -1,3 +1,5 @@
+const { withSerwist } = require("@serwist/turbopack");
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Configurações necessárias para RxDB funcionar no navegador
@@ -15,4 +17,4 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+module.exports = withSerwist(nextConfig);
