@@ -1,236 +1,190 @@
 'use client';
 
-import { useState } from 'react';
-import { login, signup } from './actions';
-import { Button } from '@/components/ui/Button';
-import { Wheat } from 'lucide-react';
-
-type Mode = 'login' | 'signup';
+import React, { useState } from "react";
+// Importamos os ícones (Adicionei o Loader2 para o botão girar e o AlertCircle para erros)
+import { Mail, Lock, Eye, EyeOff, ArrowRight, Sprout, Tractor, Loader2, AlertCircle } from "lucide-react";
+// Importamos a sua lógica de negócio que já funciona
+import { login } from "./actions"; 
+import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
-  const [mode, setMode] = useState<Mode>('login');
-  const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const supabase = createClient();
+  
+  // Estados Visuais (do AI Studio)
+  const [isLogin, setIsLogin] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
+  
+  // Estados de Negócio (Para conectar ao Supabase)
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-  const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setIsLoading(true);
-    setErrorMessage(null);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg("");
+    setLoading(true);
 
-    const formData = new FormData(event.currentTarget);
-    const result = await login(formData);
-    
-    if (result?.error) {
-      setErrorMessage(result.error);
-      setIsLoading(false);
-    }
-  };
+    try {
+      if (isLogin) {
+        // --- LOGIN: Usando sua Server Action Segura ---
+        const formData = new FormData();
+        formData.append('email', email);
+        formData.append('password', password);
 
-  const handleSignup = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setIsLoading(true);
-    setErrorMessage(null);
+        const result = await login(formData);
 
-    const formData = new FormData(event.currentTarget);
-    const result = await signup(formData);
-    
-    if (result?.error) {
-      setErrorMessage(result.error);
-      setIsLoading(false);
+        if (result?.error) {
+            throw new Error(result.error);
+        }
+        // Se der certo, a action do Next.js redireciona automaticamente
+      } else {
+        // --- CADASTRO: Criando usuário no Supabase ---
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              full_name: name,
+              role: 'MANAGER', // Role padrão
+            },
+          },
+        });
+        
+        if (error) throw error;
+
+        alert("Cadastro realizado! Faça login para continuar.");
+        setIsLogin(true); // Volta para a tela de login
+        setLoading(false);
+      }
+    } catch (error: any) {
+      console.error(error);
+      setErrorMsg(error.message || "Erro ao tentar acessar. Verifique seus dados.");
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-zinc-950 px-4">
-      {/* Container Central */}
-      <div className="w-full max-w-md space-y-8 bg-white p-8 rounded-xl shadow-2xl border-t-4 border-silo-action relative overflow-hidden">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-brand-900 relative overflow-hidden px-4">
+      
+      {/* Background Animado do AI Studio */}
+      <div className="absolute inset-0 opacity-20 pointer-events-none">
+         <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-brand-500 rounded-full blur-3xl" />
+         <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-earth-500 rounded-full blur-3xl" />
+      </div>
+
+      <div className="relative z-10 w-full max-w-sm bg-white rounded-3xl shadow-2xl p-8 flex flex-col items-center animate-zoom-in">
         
-        {/* Cabeçalho da Marca */}
-        <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center h-12 w-12 rounded-lg bg-silo-action text-white mb-2">
-            <Wheat size={28} strokeWidth={2.5} />
+        {/* Logo */}
+        <div className="flex items-center justify-center w-20 h-20 rounded-2xl bg-brand-100 text-brand-900 mb-6 shadow-lg transform -translate-y-12 border-4 border-brand-900 ring-4 ring-white">
+          <Sprout size={40} strokeWidth={2.5} />
+        </div>
+
+        <div className="mt-[-2.5rem] mb-6 text-center">
+            <h2 className="text-2xl font-bold text-brand-900">
+              {isLogin ? "Bem-vindo de volta" : "Junte-se ao GestSilo"}
+            </h2>
+            <p className="text-sm text-slate-500 mt-1">
+              Gestão inteligente para sua propriedade.
+            </p>
+        </div>
+
+        {/* Mensagem de Erro (Lógica Injetada) */}
+        {errorMsg && (
+            <div className="mb-4 w-full bg-red-50 text-red-600 text-sm p-3 rounded-lg flex items-center gap-2">
+                <AlertCircle size={16} />
+                {errorMsg}
+            </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="flex flex-col w-full gap-4">
+          
+          {/* Campo de Nome (Aparece apenas no Cadastro) */}
+          {!isLogin && (
+            <div className="relative group">
+                <div className="absolute left-4 top-3.5 text-concrete-500 group-focus-within:text-brand-900 transition-colors">
+                    <Tractor size={20} />
+                </div>
+                <input
+                    placeholder="Seu nome completo"
+                    type="text"
+                    required
+                    className="w-full pl-12 pr-5 py-3.5 rounded-xl bg-concrete-100 border-2 border-transparent focus:bg-white focus:border-earth-400 focus:ring-0 outline-none text-brand-900 placeholder-concrete-500 transition-all font-medium"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                />
+            </div>
+          )}
+
+          <div className="relative group">
+            <div className="absolute left-4 top-3.5 text-concrete-500 group-focus-within:text-brand-900 transition-colors">
+                <Mail size={20} />
+            </div>
+            <input
+              name="email"
+              placeholder="Seu e-mail corporativo"
+              type="email"
+              required
+              className="w-full pl-12 pr-5 py-3.5 rounded-xl bg-concrete-100 border-2 border-transparent focus:bg-white focus:border-earth-400 focus:ring-0 outline-none text-brand-900 placeholder-concrete-500 transition-all font-medium"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-            GestSilo
-          </h1>
-          <p className="text-sm text-gray-500 font-medium">
-            Gestão Agrícola Integrada
-          </p>
-        </div>
 
-        {/* Toggle Login/Signup */}
-        <div className="flex gap-2 bg-gray-100 p-1 rounded-lg">
+          <div className="relative group">
+            <div className="absolute left-4 top-3.5 text-concrete-500 group-focus-within:text-brand-900 transition-colors">
+                <Lock size={20} />
+            </div>
+            <input
+              name="password"
+              placeholder={isLogin ? "Sua senha" : "Crie uma senha forte"}
+              type={showPassword ? "text" : "password"}
+              required
+              className="w-full pl-12 pr-12 py-3.5 rounded-xl bg-concrete-100 border-2 border-transparent focus:bg-white focus:border-earth-400 focus:ring-0 outline-none text-brand-900 placeholder-concrete-500 transition-all font-medium"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <button 
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-3.5 text-concrete-500 hover:text-brand-900 focus:outline-none"
+            >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
+          </div>
+
           <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-earth-500 hover:bg-earth-400 disabled:opacity-70 disabled:cursor-not-allowed text-white font-bold px-5 py-4 rounded-xl shadow-lg shadow-earth-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-2"
+          >
+            {loading ? (
+                <>
+                    <Loader2 size={18} className="animate-spin" />
+                    Processando...
+                </>
+            ) : (
+                <>
+                    {isLogin ? "Acessar Sistema" : "Criar Conta"}
+                    <ArrowRight size={18} />
+                </>
+            )}
+          </button>
+        </form>
+      </div>
+
+      <div className="relative z-10 mt-8 text-center">
+        <button 
             type="button"
             onClick={() => {
-              setMode('login');
-              setErrorMessage(null);
+                setIsLogin(!isLogin);
+                setErrorMsg(""); // Limpa os erros ao trocar de aba
             }}
-            className={`flex-1 py-2 px-4 rounded-md text-sm font-semibold transition-all ${
-              mode === 'login'
-                ? 'bg-white text-silo-action shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            Entrar
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setMode('signup');
-              setErrorMessage(null);
-            }}
-            className={`flex-1 py-2 px-4 rounded-md text-sm font-semibold transition-all ${
-              mode === 'signup'
-                ? 'bg-white text-silo-action shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            Cadastrar
-          </button>
-        </div>
-
-        {/* Formulário de Login */}
-        {mode === 'login' && (
-          <form onSubmit={handleLogin} className="space-y-6 animate-in fade-in duration-200">
-            <div className="space-y-4">
-              <div>
-                <label 
-                  htmlFor="login-email" 
-                  className="block text-sm font-semibold text-gray-700 mb-1"
-                >
-                  E-mail Corporativo
-                </label>
-                <input
-                  id="login-email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  disabled={isLoading}
-                  className="w-full h-12 px-4 rounded-lg border border-gray-300 bg-gray-50 text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-silo-action focus:border-transparent transition-all outline-none disabled:opacity-50"
-                  placeholder="ex: gerente@fazenda.com"
-                />
-              </div>
-
-              <div>
-                <label 
-                  htmlFor="login-password" 
-                  className="block text-sm font-semibold text-gray-700 mb-1"
-                >
-                  Senha de Acesso
-                </label>
-                <input
-                  id="login-password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  disabled={isLoading}
-                  className="w-full h-12 px-4 rounded-lg border border-gray-300 bg-gray-50 text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-silo-action focus:border-transparent transition-all outline-none disabled:opacity-50"
-                  placeholder="••••••••"
-                />
-              </div>
-            </div>
-
-            {errorMessage && (
-              <div className="p-3 rounded-md bg-red-50 border border-red-100 text-sm text-red-600 font-medium text-center">
-                {errorMessage}
-              </div>
-            )}
-
-            <Button 
-              type="submit" 
-              disabled={isLoading}
-              className="w-full h-12 text-base shadow-lg hover:shadow-xl transition-all"
-            >
-              {isLoading ? 'Autenticando...' : 'Acessar Painel'}
-            </Button>
-          </form>
-        )}
-
-        {/* Formulário de Cadastro */}
-        {mode === 'signup' && (
-          <form onSubmit={handleSignup} className="space-y-6 animate-in fade-in duration-200">
-            <div className="space-y-4">
-              <div>
-                <label 
-                  htmlFor="signup-fullName" 
-                  className="block text-sm font-semibold text-gray-700 mb-1"
-                >
-                  Nome Completo
-                </label>
-                <input
-                  id="signup-fullName"
-                  name="fullName"
-                  type="text"
-                  required
-                  disabled={isLoading}
-                  className="w-full h-12 px-4 rounded-lg border border-gray-300 bg-gray-50 text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-silo-action focus:border-transparent transition-all outline-none disabled:opacity-50"
-                  placeholder="Seu Nome"
-                />
-              </div>
-
-              <div>
-                <label 
-                  htmlFor="signup-email" 
-                  className="block text-sm font-semibold text-gray-700 mb-1"
-                >
-                  E-mail
-                </label>
-                <input
-                  id="signup-email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  disabled={isLoading}
-                  className="w-full h-12 px-4 rounded-lg border border-gray-300 bg-gray-50 text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-silo-action focus:border-transparent transition-all outline-none disabled:opacity-50"
-                  placeholder="seu@email.com"
-                />
-              </div>
-
-              <div>
-                <label 
-                  htmlFor="signup-password" 
-                  className="block text-sm font-semibold text-gray-700 mb-1"
-                >
-                  Senha
-                </label>
-                <input
-                  id="signup-password"
-                  name="password"
-                  type="password"
-                  autoComplete="new-password"
-                  required
-                  minLength={6}
-                  disabled={isLoading}
-                  className="w-full h-12 px-4 rounded-lg border border-gray-300 bg-gray-50 text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-silo-action focus:border-transparent transition-all outline-none disabled:opacity-50"
-                  placeholder="Mínimo 6 caracteres"
-                />
-              </div>
-            </div>
-
-            {errorMessage && (
-              <div className="p-3 rounded-md bg-red-50 border border-red-100 text-sm text-red-600 font-medium text-center">
-                {errorMessage}
-              </div>
-            )}
-
-            <Button 
-              type="submit" 
-              disabled={isLoading}
-              className="w-full h-12 text-base shadow-lg hover:shadow-xl transition-all"
-            >
-              {isLoading ? 'Criando...' : 'Cadastrar e Entrar'}
-            </Button>
-          </form>
-        )}
-
-        {/* Rodapé Discreto */}
-        <p className="text-center text-xs text-gray-400 mt-8">
-          Versão MVP 1.0 • Modo Offline-First
-        </p>
+            className="text-white font-bold text-lg hover:underline mt-1 focus:outline-none"
+        >
+        {isLogin ? "Criar conta grátis" : "Fazer Login"}
+        </button>
       </div>
     </div>
   );

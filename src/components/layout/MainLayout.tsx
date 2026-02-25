@@ -161,8 +161,8 @@ export const MainLayout: React.FC<LayoutProps> = ({ children }) => {
         </div>
       </aside>
 
-      {/* Área de Conteúdo Principal */}
-      <main className="pt-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto min-h-[calc(100vh-5rem)]">
+      {/* --- ÁREA DE CONTEÚDO (Onde as páginas aparecem) --- */}
+      <main className="pt-20 px-6 sm:px-10 lg:px-12 w-full min-h-[calc(100vh-5rem)]">
         {children}
       </main>
 

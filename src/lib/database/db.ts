@@ -1,9 +1,11 @@
 import { createRxDatabase, addRxPlugin, RxDatabase, RxCollection } from 'rxdb';
 import { getRxStorageDexie } from 'rxdb/plugins/storage-dexie';
 import { RxDBMigrationPlugin } from 'rxdb/plugins/migration-schema';
+import { RxDBQueryBuilderPlugin } from 'rxdb/plugins/query-builder';
 import { eventSchema, eventMigrationStrategies, EventDocType, siloSchema, SiloDocType, fieldSchema, FieldDocType } from './schema';
 
 addRxPlugin(RxDBMigrationPlugin);
+addRxPlugin(RxDBQueryBuilderPlugin);
 import { v4 as uuidv4 } from 'uuid';
 
 export type GestSiloCollections = {
